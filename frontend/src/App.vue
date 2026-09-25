@@ -78,8 +78,8 @@ async function handleSaveEditRecipe(dto: UpdateRecipeDto) {
             🍳
           </div>
           <div>
-            <h1 class="text-lg font-bold text-gray-900 leading-tight">Recipe & Pantry Sync</h1>
-            <p class="text-xs text-gray-500">Mina recept, skafferi och inköpslista</p>
+            <h1 class="text-lg font-bold text-gray-900 leading-tight">Skafferiet</h1>
+            <p class="text-xs text-gray-500">Recept, skafferi och inköpslista</p>
           </div>
         </div>
 

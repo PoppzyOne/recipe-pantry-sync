@@ -16,7 +16,7 @@ describe('App', () => {
 
   it('renders the header title and new recipe button', () => {
     const wrapper = mount(App)
-    expect(wrapper.text()).toContain('Recipe & Pantry Sync')
+    expect(wrapper.text()).toContain('Skafferiet')
     expect(wrapper.text()).toContain('Nytt recept')
   })
 })
