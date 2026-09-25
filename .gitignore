@@ -1,0 +1,27 @@
+# General
+.DS_Store
+*.log
+.env
+.env.*.local
+
+# IDEs
+.idea/
+.vscode/*
+!.vscode/extensions.json
+*.iml
+*.ipr
+*.iws
+
+# Backend (Quarkus / Maven)
+backend/target/
+backend/.quarkus/
+backend/.certs/
+
+# Frontend (Node / Vite)
+frontend/node_modules/
+frontend/dist/
+frontend/dist-ssr/
+frontend/coverage/
+frontend/*.tsbuildinfo
+frontend/.eslintcache
+frontend/__screenshots__/
