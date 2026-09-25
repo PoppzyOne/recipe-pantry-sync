@@ -38,12 +38,12 @@ INSERT INTO recipe_ingredients (id, recipe_id, ingredient_id, amount, unit, note
 INSERT INTO recipe_ingredients (id, recipe_id, ingredient_id, amount, unit, notes) VALUES (10, 2, 10, 1.0, 'msk', null);
 
 -- Skafferi (Pantry Items)
-INSERT INTO pantry_items (id, ingredient_id, quantity, unit, in_stock, updated_at) VALUES (1, 1, 500.0, 'g', true, CURRENT_TIMESTAMP);
-INSERT INTO pantry_items (id, ingredient_id, quantity, unit, in_stock, updated_at) VALUES (2, 2, 0.0, 'g', false, CURRENT_TIMESTAMP);
-INSERT INTO pantry_items (id, ingredient_id, quantity, unit, in_stock, updated_at) VALUES (3, 3, 6.0, 'st', true, CURRENT_TIMESTAMP);
-INSERT INTO pantry_items (id, ingredient_id, quantity, unit, in_stock, updated_at) VALUES (4, 4, 0.0, 'g', false, CURRENT_TIMESTAMP);
-INSERT INTO pantry_items (id, ingredient_id, quantity, unit, in_stock, updated_at) VALUES (5, 8, 3.0, 'st', true, CURRENT_TIMESTAMP);
-INSERT INTO pantry_items (id, ingredient_id, quantity, unit, in_stock, updated_at) VALUES (6, 10, 1.0, 'burk', true, CURRENT_TIMESTAMP);
+INSERT INTO pantry_items (id, ingredient_id, quantity, unit, quantity_level, in_stock, updated_at) VALUES (1, 1, 500.0, 'g', 'FULL', true, CURRENT_TIMESTAMP);
+INSERT INTO pantry_items (id, ingredient_id, quantity, unit, quantity_level, in_stock, updated_at) VALUES (2, 2, 0.0, 'g', 'EMPTY', false, CURRENT_TIMESTAMP);
+INSERT INTO pantry_items (id, ingredient_id, quantity, unit, quantity_level, in_stock, updated_at) VALUES (3, 3, 6.0, 'st', 'HALF', true, CURRENT_TIMESTAMP);
+INSERT INTO pantry_items (id, ingredient_id, quantity, unit, quantity_level, in_stock, updated_at) VALUES (4, 4, 0.0, 'g', 'EMPTY', false, CURRENT_TIMESTAMP);
+INSERT INTO pantry_items (id, ingredient_id, quantity, unit, quantity_level, in_stock, updated_at) VALUES (5, 8, 3.0, 'st', 'FULL', true, CURRENT_TIMESTAMP);
+INSERT INTO pantry_items (id, ingredient_id, quantity, unit, quantity_level, in_stock, updated_at) VALUES (6, 10, 1.0, 'burk', 'FULL', true, CURRENT_TIMESTAMP);
 
 ALTER TABLE recipes ALTER COLUMN id RESTART WITH 100;
 ALTER TABLE ingredients ALTER COLUMN id RESTART WITH 100;
