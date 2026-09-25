@@ -2,25 +2,26 @@
 import { ref } from 'vue'
 import { useShoppingListStore } from '@/stores/shoppingListStore'
 import type { IngredientCategory } from '@/types/recipe'
+import { MEASUREMENT_UNITS, CATEGORY_LABELS } from '@/types/recipe'
 
 const shoppingStore = useShoppingListStore()
 
 const newItemName = ref('')
 const selectedCategory = ref<IngredientCategory>('PRODUCE')
 const newItemAmount = ref<number | undefined>(undefined)
-const newItemUnit = ref<string>('')
+const newItemUnit = ref<string>('st')
 const toastMessage = ref<string | null>(null)
 const isSyncing = ref(false)
 
-const categoryLabels: Record<IngredientCategory, { label: string; icon: string }> = {
-  PRODUCE: { label: 'Frukt & Grönt', icon: '🥬' },
-  DAIRY: { label: 'Mejeri & Kyl', icon: '🧀' },
-  MEAT: { label: 'Kött, Fågel & Fisk', icon: '🥩' },
-  PANTRY: { label: 'Skafferi & Torrvaror', icon: '🌾' },
-  SPICES: { label: 'Kryddor & Smak', icon: '🧂' },
-  BAKERY: { label: 'Bröd & Bak', icon: '🍞' },
-  FROZEN: { label: 'Frysvaror', icon: '🧊' },
-  OTHER: { label: 'Övrigt', icon: '📦' },
+const categoryIcons: Record<IngredientCategory, string> = {
+  PRODUCE: '🥬',
+  DAIRY: '🧀',
+  MEAT: '🥩',
+  PANTRY: '🌾',
+  SPICES: '🧂',
+  BAKERY: '🍞',
+  FROZEN: '🧊',
+  OTHER: '📦',
 }
 
 function handleAddItem() {
@@ -35,7 +36,7 @@ function handleAddItem() {
 
   newItemName.value = ''
   newItemAmount.value = undefined
-  newItemUnit.value = ''
+  newItemUnit.value = 'st'
 }
 
 async function handleSyncToPantry() {
@@ -123,23 +124,26 @@ function showToast(msg: string) {
             class="w-20 px-2.5 py-2 text-sm rounded-lg border border-gray-200 focus:outline-hidden focus:ring-2 focus:ring-emerald-500"
           />
 
-          <input
+          <select
             v-model="newItemUnit"
-            type="text"
-            placeholder="Enhet"
-            class="w-20 px-2.5 py-2 text-sm rounded-lg border border-gray-200 focus:outline-hidden focus:ring-2 focus:ring-emerald-500"
-          />
+            class="px-2.5 py-2 text-sm rounded-lg border border-gray-200 focus:outline-hidden focus:ring-2 focus:ring-emerald-500 bg-white"
+          >
+            <option value="">Ingen enhet</option>
+            <option v-for="u in MEASUREMENT_UNITS" :key="u.value" :value="u.value">
+              {{ u.label }}
+            </option>
+          </select>
 
           <select
             v-model="selectedCategory"
             class="px-2.5 py-2 text-sm rounded-lg border border-gray-200 focus:outline-hidden focus:ring-2 focus:ring-emerald-500 bg-white"
           >
             <option
-              v-for="(info, key) in categoryLabels"
+              v-for="(info, key) in CATEGORY_LABELS"
               :key="key"
               :value="key"
             >
-              {{ info.icon }} {{ info.label }}
+              {{ categoryIcons[key as IngredientCategory] }} {{ info.label }}
             </option>
           </select>
 
@@ -177,8 +181,8 @@ function showToast(msg: string) {
         <!-- Aisle / Category header -->
         <div class="bg-gray-50/80 px-4 py-2.5 border-b border-gray-100 flex items-center justify-between text-xs font-bold text-gray-700">
           <div class="flex items-center gap-2">
-            <span>{{ categoryLabels[categoryKey as IngredientCategory]?.icon || '📦' }}</span>
-            <span>{{ categoryLabels[categoryKey as IngredientCategory]?.label || categoryKey }}</span>
+            <span>{{ categoryIcons[categoryKey as IngredientCategory] || '📦' }}</span>
+            <span>{{ CATEGORY_LABELS[categoryKey as IngredientCategory]?.label || categoryKey }}</span>
             <span class="text-gray-400 font-normal">({{ categoryItems.length }})</span>
           </div>
         </div>
