@@ -61,6 +61,7 @@ export interface CreatePantryItemDto {
 }
 
 export interface UpdatePantryItemDto {
+  category?: IngredientCategory | null
   quantity?: number | null
   unit?: string | null
   quantityLevel?: QuantityLevel | null

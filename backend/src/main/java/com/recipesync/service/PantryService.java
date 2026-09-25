@@ -95,21 +95,16 @@ public class PantryService {
         PantryItem item = pantryItemRepository.findByIdOptional(id)
                 .orElseThrow(() -> new NotFoundException("Pantry item not found with id: " + id));
 
-        if (dto.quantity() != null) {
-            item.quantity = dto.quantity();
+        if (dto.category() != null) {
+            item.ingredient.category = dto.category();
         }
-        if (dto.unit() != null) {
-            item.unit = dto.unit();
-        }
-        if (dto.quantityLevel() != null) {
-            item.quantityLevel = dto.quantityLevel();
-            if (dto.quantityLevel() == QuantityLevel.EMPTY) {
-                item.inStock = false;
-            } else if (dto.inStock() == null) {
-                item.inStock = true;
-            }
-        }
-        if (dto.inStock() != null) {
+        item.quantity = dto.quantity();
+        item.unit = dto.unit();
+        item.quantityLevel = dto.quantityLevel();
+
+        if (dto.quantityLevel() == QuantityLevel.EMPTY) {
+            item.inStock = false;
+        } else if (dto.inStock() != null) {
             item.inStock = dto.inStock();
         }
 

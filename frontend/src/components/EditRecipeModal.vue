@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { reactive, ref, watch } from 'vue'
 import type { Recipe, UpdateRecipeDto, CreateRecipeIngredientDto, IngredientCategory } from '@/types/recipe'
-import { MEASUREMENT_UNITS } from '@/types/recipe'
+import { MEASUREMENT_UNITS, CATEGORY_LABELS, INGREDIENT_CATEGORIES } from '@/types/recipe'
 
 const props = defineProps<{
   recipe: Recipe
@@ -12,17 +12,6 @@ const emit = defineEmits<{
   (e: 'close'): void
   (e: 'save', dto: UpdateRecipeDto): void
 }>()
-
-const categories: { value: IngredientCategory; label: string }[] = [
-  { value: 'PANTRY', label: 'Skafferi' },
-  { value: 'PRODUCE', label: 'Frukt & Grönt' },
-  { value: 'DAIRY', label: 'Mejeri & Ost' },
-  { value: 'MEAT', label: 'Kött & Fisk' },
-  { value: 'SPICES', label: 'Kryddor' },
-  { value: 'BAKERY', label: 'Bageri' },
-  { value: 'FROZEN', label: 'Frys' },
-  { value: 'OTHER', label: 'Övrigt' },
-]
 
 const form = reactive<{
   title: string
@@ -231,8 +220,11 @@ function handleSubmit() {
                 <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0"></span>
                 <span class="font-semibold text-gray-900 truncate">{{ ing.name }}</span>
                 <span v-if="ing.notes" class="text-xs text-gray-500 truncate">({{ ing.notes }})</span>
-                <span class="text-[10px] uppercase font-bold text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded-sm shrink-0">
-                  {{ ing.category }}
+                <span
+                  class="text-[10px] font-semibold px-2 py-0.5 rounded-full border shrink-0"
+                  :class="CATEGORY_LABELS[ing.category || 'OTHER']?.color || 'bg-gray-100 text-gray-600 border-gray-200'"
+                >
+                  {{ CATEGORY_LABELS[ing.category || 'OTHER']?.label || ing.category }}
                 </span>
               </div>
 
@@ -289,7 +281,7 @@ function handleSubmit() {
                 v-model="newIng.category"
                 class="sm:col-span-2 px-2 py-1.5 text-xs rounded-lg border border-gray-300 bg-white focus:outline-hidden focus:ring-2 focus:ring-emerald-500"
               >
-                <option v-for="cat in categories" :key="cat.value" :value="cat.value">
+                <option v-for="cat in INGREDIENT_CATEGORIES" :key="cat.value" :value="cat.value">
                   {{ cat.label }}
                 </option>
               </select>

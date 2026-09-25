@@ -3,6 +3,7 @@ import { computed } from 'vue'
 import type { PantryItem } from '@/types/pantry'
 import { QUANTITY_LEVELS } from '@/types/pantry'
 import type { IngredientCategory } from '@/types/recipe'
+import { CATEGORY_LABELS } from '@/types/recipe'
 
 const props = defineProps<{
   item: PantryItem
@@ -14,17 +15,6 @@ const emit = defineEmits<{
   (e: 'delete', id: number): void
   (e: 'addToShoppingList', item: PantryItem): void
 }>()
-
-const categoryLabels: Record<IngredientCategory, { label: string; color: string }> = {
-  PRODUCE: { label: 'Grönt & Frukt', color: 'bg-green-50 text-green-700 border-green-200' },
-  DAIRY: { label: 'Mejeri & Ost', color: 'bg-blue-50 text-blue-700 border-blue-200' },
-  MEAT: { label: 'Kött & Fisk', color: 'bg-red-50 text-red-700 border-red-200' },
-  PANTRY: { label: 'Skafferi', color: 'bg-amber-50 text-amber-700 border-amber-200' },
-  SPICES: { label: 'Kryddor', color: 'bg-orange-50 text-orange-700 border-orange-200' },
-  BAKERY: { label: 'Bageri', color: 'bg-yellow-50 text-yellow-700 border-yellow-200' },
-  FROZEN: { label: 'Frys', color: 'bg-cyan-50 text-cyan-700 border-cyan-200' },
-  OTHER: { label: 'Övrigt', color: 'bg-gray-50 text-gray-700 border-gray-200' },
-}
 
 const levelInfo = computed(() => {
   if (!props.item.quantityLevel) return null
@@ -42,9 +32,9 @@ const levelInfo = computed(() => {
         <div>
           <span
             class="inline-block text-[11px] font-semibold px-2 py-0.5 rounded-full border mb-1.5"
-            :class="categoryLabels[item.category]?.color || 'bg-gray-50 text-gray-700 border-gray-200'"
+            :class="CATEGORY_LABELS[item.category]?.color || 'bg-gray-50 text-gray-700 border-gray-200'"
           >
-            {{ categoryLabels[item.category]?.label || item.category }}
+            {{ CATEGORY_LABELS[item.category]?.label || item.category }}
           </span>
           <h4 class="text-base font-bold text-gray-900 leading-snug">
             {{ item.ingredientName }}

@@ -2,8 +2,7 @@
 import { reactive, ref } from 'vue'
 import type { CreatePantryItemDto, QuantityLevel } from '@/types/pantry'
 import { QUANTITY_LEVELS } from '@/types/pantry'
-import type { IngredientCategory } from '@/types/recipe'
-import { MEASUREMENT_UNITS } from '@/types/recipe'
+import { MEASUREMENT_UNITS, INGREDIENT_CATEGORIES } from '@/types/recipe'
 
 const emit = defineEmits<{
   (e: 'close'): void
@@ -19,29 +18,22 @@ const form = reactive<CreatePantryItemDto>({
   category: 'PANTRY',
   quantity: 1,
   unit: 'st',
-  quantityLevel: 'FULL',
+  quantityLevel: null,
   inStock: true,
 })
-
-const categories: { value: IngredientCategory; label: string }[] = [
-  { value: 'PANTRY', label: 'Skafferi & Torrvaror' },
-  { value: 'PRODUCE', label: 'Frukt & Grönt' },
-  { value: 'DAIRY', label: 'Mejeri & Ost' },
-  { value: 'MEAT', label: 'Kött, Fågel & Fisk' },
-  { value: 'SPICES', label: 'Kryddor & Smaksättare' },
-  { value: 'BAKERY', label: 'Bröd & Bakning' },
-  { value: 'FROZEN', label: 'Frysvaror' },
-  { value: 'OTHER', label: 'Övrigt' },
-]
 
 const nameError = ref<string | null>(null)
 
 function selectQuantityLevel(level: QuantityLevel) {
-  form.quantityLevel = level
-  if (level === 'EMPTY') {
-    form.inStock = false
+  if (form.quantityLevel === level) {
+    form.quantityLevel = null
   } else {
-    form.inStock = true
+    form.quantityLevel = level
+    if (level === 'EMPTY') {
+      form.inStock = false
+    } else {
+      form.inStock = true
+    }
   }
 }
 
@@ -100,15 +92,28 @@ function handleSubmit() {
             v-model="form.category"
             class="w-full px-3.5 py-2.5 rounded-lg border border-gray-300 focus:outline-hidden focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-gray-900 text-sm bg-white"
           >
-            <option v-for="cat in categories" :key="cat.value" :value="cat.value">
+            <option v-for="cat in INGREDIENT_CATEGORIES" :key="cat.value" :value="cat.value">
               {{ cat.label }}
             </option>
           </select>
         </div>
 
-        <!-- Mängdnivå (Quick enum buttons) -->
+        <!-- Mängdnivå (Valfri enum) -->
         <div>
-          <label class="block text-xs font-semibold text-gray-700 mb-1.5">Lagerstatus / Mängdnivå</label>
+          <div class="flex items-center justify-between mb-1.5">
+            <label class="block text-xs font-semibold text-gray-700">
+              Lagerstatus / Mängdnivå
+              <span class="text-xs font-normal text-gray-500">(valfritt)</span>
+            </label>
+            <button
+              v-if="form.quantityLevel"
+              type="button"
+              class="text-[11px] text-gray-400 hover:text-gray-600 underline cursor-pointer"
+              @click="form.quantityLevel = null"
+            >
+              Rensa nivå
+            </button>
+          </div>
           <div class="grid grid-cols-4 gap-1.5">
             <button
               v-for="lvl in QUANTITY_LEVELS"
@@ -120,17 +125,19 @@ function handleSubmit() {
                   ? 'border-emerald-600 bg-emerald-50 text-emerald-800 ring-2 ring-emerald-500/20 shadow-2xs font-bold'
                   : 'border-gray-200 bg-white text-gray-600 hover:bg-gray-50'
               "
+              :title="form.quantityLevel === lvl.value ? 'Klicka för att avmarkera' : lvl.label"
               @click="selectQuantityLevel(lvl.value)"
             >
               {{ lvl.label }}
             </button>
           </div>
+          <p class="text-[11px] text-gray-400 mt-1">Klicka på en vald nivå igen för att avmarkera.</p>
         </div>
 
         <!-- Numeric quantity and Unit enum select -->
         <div class="grid grid-cols-2 gap-3">
           <div>
-            <label class="block text-xs font-semibold text-gray-700 mb-1">Exakt mängd (valfritt)</label>
+            <label class="block text-xs font-semibold text-gray-700 mb-1">Mängd (valfritt)</label>
             <input
               v-model="form.quantity"
               type="number"

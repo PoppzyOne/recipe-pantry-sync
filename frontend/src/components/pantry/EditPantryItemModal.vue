@@ -2,7 +2,8 @@
 import { reactive, watch } from 'vue'
 import type { PantryItem, UpdatePantryItemDto, QuantityLevel } from '@/types/pantry'
 import { QUANTITY_LEVELS } from '@/types/pantry'
-import { MEASUREMENT_UNITS } from '@/types/recipe'
+import type { IngredientCategory } from '@/types/recipe'
+import { MEASUREMENT_UNITS, INGREDIENT_CATEGORIES } from '@/types/recipe'
 
 const props = defineProps<{
   item: PantryItem
@@ -14,35 +15,53 @@ const emit = defineEmits<{
   (e: 'save', dto: UpdatePantryItemDto): void
 }>()
 
-const form = reactive<UpdatePantryItemDto>({
+const form = reactive<{
+  category: IngredientCategory
+  quantity: number | null | undefined
+  unit: string | null
+  quantityLevel: QuantityLevel | null
+  inStock: boolean
+}>({
+  category: props.item.category,
   quantity: props.item.quantity,
   unit: props.item.unit || 'st',
-  quantityLevel: props.item.quantityLevel || (props.item.inStock ? 'FULL' : 'EMPTY'),
+  quantityLevel: props.item.quantityLevel || null,
   inStock: props.item.inStock,
 })
 
 watch(
   () => props.item,
   (newItem) => {
+    form.category = newItem.category
     form.quantity = newItem.quantity
     form.unit = newItem.unit || 'st'
-    form.quantityLevel = newItem.quantityLevel || (newItem.inStock ? 'FULL' : 'EMPTY')
+    form.quantityLevel = newItem.quantityLevel || null
     form.inStock = newItem.inStock
   },
   { deep: true }
 )
 
 function selectQuantityLevel(level: QuantityLevel) {
-  form.quantityLevel = level
-  if (level === 'EMPTY') {
-    form.inStock = false
+  // If clicking the active level, toggle it off (optional level)
+  if (form.quantityLevel === level) {
+    form.quantityLevel = null
   } else {
-    form.inStock = true
+    form.quantityLevel = level
+    if (level === 'EMPTY') {
+      form.inStock = false
+    } else {
+      form.inStock = true
+    }
   }
+}
+
+function clearQuantityLevel() {
+  form.quantityLevel = null
 }
 
 function handleSubmit() {
   emit('save', {
+    category: form.category,
     quantity: form.quantity !== null && form.quantity !== undefined && form.quantity !== ('' as unknown)
       ? Number(form.quantity)
       : null,
@@ -72,7 +91,7 @@ function handleSubmit() {
         </button>
       </div>
 
-      <form @submit.prevent="handleSubmit" class="p-6 space-y-5">
+      <form @submit.prevent="handleSubmit" class="p-6 space-y-4">
         <!-- Vara / Namn info -->
         <div class="bg-gray-50 p-3.5 rounded-xl border border-gray-200/60 flex items-center justify-between">
           <div>
@@ -80,13 +99,39 @@ function handleSubmit() {
             <span class="text-base font-bold text-gray-900">{{ item.ingredientName }}</span>
           </div>
           <span class="text-xs font-semibold px-2.5 py-1 rounded-full bg-white border border-gray-200 text-gray-700">
-            {{ item.category }}
+            {{ INGREDIENT_CATEGORIES.find(c => c.value === form.category)?.label || form.category }}
           </span>
         </div>
 
-        <!-- Mängdnivå (Quick enum buttons) -->
+        <!-- Kategori (redigerbar i svensk text) -->
         <div>
-          <label class="block text-xs font-semibold text-gray-700 mb-1.5">Lagerstatus / Mängdnivå</label>
+          <label class="block text-xs font-semibold text-gray-700 mb-1">Kategori</label>
+          <select
+            v-model="form.category"
+            class="w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-hidden focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-gray-900 text-sm bg-white"
+          >
+            <option v-for="cat in INGREDIENT_CATEGORIES" :key="cat.value" :value="cat.value">
+              {{ cat.label }}
+            </option>
+          </select>
+        </div>
+
+        <!-- Mängdnivå (Valfri enum) -->
+        <div>
+          <div class="flex items-center justify-between mb-1.5">
+            <label class="block text-xs font-semibold text-gray-700">
+              Lagerstatus / Mängdnivå
+              <span class="text-xs font-normal text-gray-500">(valfritt)</span>
+            </label>
+            <button
+              v-if="form.quantityLevel"
+              type="button"
+              class="text-[11px] text-gray-400 hover:text-gray-600 underline cursor-pointer"
+              @click="clearQuantityLevel"
+            >
+              Rensa nivå
+            </button>
+          </div>
           <div class="grid grid-cols-4 gap-1.5">
             <button
               v-for="lvl in QUANTITY_LEVELS"
@@ -98,11 +143,13 @@ function handleSubmit() {
                   ? 'border-emerald-600 bg-emerald-50 text-emerald-800 ring-2 ring-emerald-500/20 shadow-2xs font-bold'
                   : 'border-gray-200 bg-white text-gray-600 hover:bg-gray-50'
               "
+              :title="form.quantityLevel === lvl.value ? 'Klicka för att avmarkera' : lvl.label"
               @click="selectQuantityLevel(lvl.value)"
             >
               {{ lvl.label }}
             </button>
           </div>
+          <p class="text-[11px] text-gray-400 mt-1">Klicka på en vald nivå igen för att avmarkera.</p>
         </div>
 
         <!-- Numeric quantity and Unit enum select -->

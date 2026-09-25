@@ -139,6 +139,32 @@ class PantryResourceTest {
 
     @Test
     @Order(8)
+    void testUpdatePantryItemWithCategoryAndNoQuantityLevel() {
+        String updateJson = """
+                {
+                    "category": "PRODUCE",
+                    "quantity": 600.0,
+                    "unit": "g",
+                    "quantityLevel": null,
+                    "inStock": true
+                }
+                """;
+
+        given()
+                .contentType(ContentType.JSON)
+                .body(updateJson)
+                .when().put("/api/pantry/1")
+                .then()
+                .statusCode(200)
+                .body("id", is(1))
+                .body("category", is("PRODUCE"))
+                .body("quantity", is(600.0f))
+                .body("quantityLevel", org.hamcrest.CoreMatchers.nullValue())
+                .body("inStock", is(true));
+    }
+
+    @Test
+    @Order(9)
     void testDeletePantryItem() {
         // Delete item 5 (Gul lök)
         given()
