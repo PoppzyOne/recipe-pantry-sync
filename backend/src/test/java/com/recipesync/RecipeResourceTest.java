@@ -295,4 +295,45 @@ class RecipeResourceTest {
                 .then()
                 .statusCode(404);
     }
+
+    @Test
+    @Order(13)
+    void testImportRecipeFromTextSuccess() {
+        String importJson = """
+                {
+                    "text": "Krämig Fisksoppa\\n4 portioner\\n25 min\\n\\nIngredienser:\\n400 g lax\\n2 dl grädde\\n1 st purjolök\\nsalt och peppar\\n\\nGör så här:\\n1. Koka ihop."
+                }
+                """;
+
+        given()
+                .contentType(ContentType.JSON)
+                .body(importJson)
+                .when().post("/api/recipes/import")
+                .then()
+                .statusCode(200)
+                .body("title", is("Krämig Fisksoppa"))
+                .body("servings", is(4))
+                .body("cookTimeMinutes", is(25))
+                .body("ingredients.size()", is(4))
+                .body("ingredients[0].name", is("Lax"))
+                .body("ingredients[0].amount", is(400.0f))
+                .body("ingredients[0].category", is("MEAT"));
+    }
+
+    @Test
+    @Order(14)
+    void testImportRecipeBadRequest() {
+        String invalidJson = """
+                {
+                    "url": ""
+                }
+                """;
+
+        given()
+                .contentType(ContentType.JSON)
+                .body(invalidJson)
+                .when().post("/api/recipes/import")
+                .then()
+                .statusCode(400);
+    }
 }

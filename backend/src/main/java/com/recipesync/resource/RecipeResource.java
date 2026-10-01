@@ -1,13 +1,17 @@
 package com.recipesync.resource;
 
 import com.recipesync.dto.CreateRecipeDto;
+import com.recipesync.dto.ImportRecipeRequestDto;
+import com.recipesync.dto.ImportedRecipeDto;
 import com.recipesync.dto.RecipeIngredientDto;
 import com.recipesync.dto.RecipeResponseDto;
 import com.recipesync.dto.UpdateRecipeDto;
 import com.recipesync.service.PantryService;
+import com.recipesync.service.RecipeImportService;
 import com.recipesync.service.RecipeService;
 import jakarta.inject.Inject;
 import jakarta.validation.Valid;
+import jakarta.ws.rs.BadRequestException;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.GET;
@@ -38,11 +42,16 @@ public class RecipeResource {
 
     private final RecipeService recipeService;
     private final PantryService pantryService;
+    private final RecipeImportService recipeImportService;
 
     @Inject
-    public RecipeResource(RecipeService recipeService, PantryService pantryService) {
+    public RecipeResource(
+            RecipeService recipeService,
+            PantryService pantryService,
+            RecipeImportService recipeImportService) {
         this.recipeService = recipeService;
         this.pantryService = pantryService;
+        this.recipeImportService = recipeImportService;
     }
 
     @GET
@@ -121,5 +130,29 @@ public class RecipeResource {
     public Response delete(@Parameter(description = "ID of the recipe to delete", required = true) @PathParam("id") Long id) {
         recipeService.deleteRecipe(id);
         return Response.noContent().build();
+    }
+
+    @POST
+    @Path("/import")
+    @Operation(summary = "Import recipe", description = "Parses and imports recipe details from a URL or raw text using schema.org metadata")
+    @APIResponses({
+            @APIResponse(responseCode = "200", description = "Recipe imported successfully",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON,
+                            schema = @Schema(implementation = ImportedRecipeDto.class))),
+            @APIResponse(responseCode = "400", description = "Invalid URL or could not parse recipe")
+    })
+    public Response importRecipe(@Valid ImportRecipeRequestDto request) {
+        if (request == null) {
+            throw new BadRequestException("Request body cannot be null");
+        }
+        ImportedRecipeDto imported;
+        if (request.url() != null && !request.url().isBlank()) {
+            imported = recipeImportService.importFromUrl(request.url());
+        } else if (request.text() != null && !request.text().isBlank()) {
+            imported = recipeImportService.importFromText(request.text());
+        } else {
+            throw new BadRequestException("Ange antingen en webbadress (url) eller recepttext (text).");
+        }
+        return Response.ok(imported).build();
     }
 }

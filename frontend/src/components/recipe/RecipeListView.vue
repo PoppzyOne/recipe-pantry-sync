@@ -10,6 +10,7 @@ const emit = defineEmits<{
   (e: 'edit', recipe: Recipe): void
   (e: 'delete', id: number): void
   (e: 'create'): void
+  (e: 'import'): void
 }>()
 
 const timeFilterOptions: { label: string; value: number | 'ALL' }[] = [
@@ -138,13 +139,22 @@ const sortOptions: { label: string; value: RecipeSortOption }[] = [
       <p class="text-sm text-gray-500 mb-6">
         Börja med att skapa ditt första recept för att bygga upp din receptbank.
       </p>
-      <button
-        type="button"
-        class="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold px-4 py-2.5 rounded-xl shadow-xs transition-colors cursor-pointer"
-        @click="emit('create')"
-      >
-        <span>+</span> Skapa ditt första recept
-      </button>
+      <div class="flex items-center justify-center gap-3">
+        <button
+          type="button"
+          class="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold px-4 py-2.5 rounded-xl shadow-xs transition-colors cursor-pointer"
+          @click="emit('create')"
+        >
+          <span>+</span> Skapa recept
+        </button>
+        <button
+          type="button"
+          class="inline-flex items-center gap-2 bg-white hover:bg-gray-50 text-gray-700 text-sm font-semibold px-4 py-2.5 rounded-xl border border-gray-200 transition-colors cursor-pointer"
+          @click="emit('import')"
+        >
+          <span>📥</span> Importera recept
+        </button>
+      </div>
     </div>
 
     <!-- Empty Search Results State (Recipes exist but none match filters) -->
