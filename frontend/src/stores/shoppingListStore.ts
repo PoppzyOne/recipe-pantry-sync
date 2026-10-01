@@ -280,6 +280,51 @@ export const useShoppingListStore = defineStore('shoppingList', () => {
     return syncedCount
   }
 
+  function getFormattedShareText(): string {
+    const pending = uncheckedItems.value
+    if (pending.length === 0) {
+      return '🛒 Inköpslistan är tom!'
+    }
+
+    const categoryNames: Record<string, { label: string; icon: string }> = {
+      PRODUCE: { label: 'Frukt & Grönt', icon: '🥬' },
+      DAIRY: { label: 'Mejeri & Ost', icon: '🧀' },
+      MEAT: { label: 'Kött, Fågel & Fisk', icon: '🥩' },
+      PANTRY: { label: 'Skafferi & Torrvaror', icon: '🌾' },
+      SPICES: { label: 'Kryddor & Smaksättare', icon: '🧂' },
+      BAKERY: { label: 'Bröd & Bakning', icon: '🍞' },
+      FROZEN: { label: 'Frysvaror', icon: '🧊' },
+      OTHER: { label: 'Övrigt', icon: '📦' },
+    }
+
+    // Group unchecked items by category
+    const grouped = new Map<string, ShoppingListItem[]>()
+    for (const item of pending) {
+      const cat = item.category || 'OTHER'
+      if (!grouped.has(cat)) {
+        grouped.set(cat, [])
+      }
+      grouped.get(cat)!.push(item)
+    }
+
+    const lines: string[] = ['🛒 Inköpslista – Skafferiet', '']
+
+    for (const [cat, catItems] of grouped.entries()) {
+      const info = categoryNames[cat] || { label: cat, icon: '📦' }
+      lines.push(`${info.icon} ${info.label}:`)
+      for (const item of catItems) {
+        let line = `• ${item.name}`
+        if (item.amount) {
+          line += ` (${item.amount} ${item.unit || ''})`.trimEnd()
+        }
+        lines.push(line)
+      }
+      lines.push('')
+    }
+
+    return lines.join('\n').trim()
+  }
+
   return {
     items,
     loading,
@@ -300,5 +345,6 @@ export const useShoppingListStore = defineStore('shoppingList', () => {
     clearChecked,
     clearAll,
     syncCheckedToPantry,
+    getFormattedShareText,
   }
 })

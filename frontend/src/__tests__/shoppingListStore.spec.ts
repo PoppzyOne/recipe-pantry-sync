@@ -40,4 +40,22 @@ describe('shoppingListStore', () => {
     store.clearChecked()
     expect(store.items).toHaveLength(0)
   })
+
+  it('formats shopping list text correctly for sharing', () => {
+    const store = useShoppingListStore()
+
+    // When empty
+    expect(store.getFormattedShareText()).toBe('🛒 Inköpslistan är tom!')
+
+    // Add items
+    store.addItem({ name: 'Morötter', category: 'PRODUCE', amount: 500, unit: 'g' })
+    store.addItem({ name: 'Mjölk', category: 'DAIRY', amount: 1, unit: 'l' })
+
+    const text = store.getFormattedShareText()
+    expect(text).toContain('🛒 Inköpslista – Skafferiet')
+    expect(text).toContain('🥬 Frukt & Grönt:')
+    expect(text).toContain('• Morötter (500 g)')
+    expect(text).toContain('🧀 Mejeri & Ost:')
+    expect(text).toContain('• Mjölk (1 l)')
+  })
 })
