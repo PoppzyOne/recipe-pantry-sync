@@ -45,7 +45,12 @@ INSERT INTO pantry_items (id, ingredient_id, quantity, unit, quantity_level, in_
 INSERT INTO pantry_items (id, ingredient_id, quantity, unit, quantity_level, in_stock, updated_at) VALUES (5, 8, 3.0, 'st', 'FULL', true, CURRENT_TIMESTAMP);
 INSERT INTO pantry_items (id, ingredient_id, quantity, unit, quantity_level, in_stock, updated_at) VALUES (6, 10, 1.0, 'burk', 'FULL', true, CURRENT_TIMESTAMP);
 
+-- Veckoplanering (Meal Plans)
+INSERT INTO meal_plan_items (id, plan_date, meal_type, recipe_id, custom_title, servings, notes, created_at, updated_at)
+VALUES (1, CURRENT_DATE, 'DINNER', 1, null, 4, 'Serveras med rikligt med pecorino', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+
 ALTER TABLE recipes ALTER COLUMN id RESTART WITH 100;
 ALTER TABLE ingredients ALTER COLUMN id RESTART WITH 100;
 ALTER TABLE recipe_ingredients ALTER COLUMN id RESTART WITH 100;
 ALTER TABLE pantry_items ALTER COLUMN id RESTART WITH 100;
+ALTER TABLE meal_plan_items ALTER COLUMN id RESTART WITH 100;

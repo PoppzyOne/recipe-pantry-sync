@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { reactive, ref } from 'vue'
-import type { CreateRecipeDto, CreateRecipeIngredientDto, IngredientCategory } from '@/types/recipe'
+import type { CreateRecipeDto, CreateRecipeIngredientDto } from '@/types/recipe'
 import { MEASUREMENT_UNITS, CATEGORY_LABELS, INGREDIENT_CATEGORIES } from '@/types/recipe'
 
 const emit = defineEmits<{

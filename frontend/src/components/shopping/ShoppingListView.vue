@@ -61,7 +61,7 @@ function showToast(msg: string) {
       <div>
         <div class="flex items-center gap-2">
           <h2 class="text-2xl font-bold text-gray-900">Inköpslista</h2>
-          <!-- Offline badge -->
+          <!-- Offline badge / Sync status -->
           <span
             v-if="shoppingStore.isOffline"
             class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-800"
@@ -70,15 +70,22 @@ function showToast(msg: string) {
             Offline-läge
           </span>
           <span
+            v-else-if="shoppingStore.isSyncing"
+            class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-50 text-blue-700"
+          >
+            <span class="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse"></span>
+            Synkroniserar...
+          </span>
+          <span
             v-else
             class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700"
           >
             <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-            Synkad lokalt
+            Synkad
           </span>
         </div>
         <p class="text-sm text-gray-500">
-          Sparas automatiskt lokalt – fungerar perfekt i butiken även utan täckning
+          Sparas lokalt och synkas mot backend – fungerar sömlöst även offline i butiken
         </p>
       </div>
 
@@ -208,6 +215,13 @@ function showToast(msg: string) {
                   :class="item.checked ? 'line-through text-gray-400' : 'text-gray-900'"
                 >
                   {{ item.name }}
+                </span>
+                <span
+                  v-if="item.pendingSync"
+                  class="ml-1.5 text-[10px] text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded-md border border-amber-200"
+                  title="Sparad lokalt – synkas när du är online"
+                >
+                  väntar på synk
                 </span>
                 <span
                   v-if="item.amount"

@@ -2,7 +2,6 @@
 import { computed } from 'vue'
 import type { PantryItem } from '@/types/pantry'
 import { QUANTITY_LEVELS } from '@/types/pantry'
-import type { IngredientCategory } from '@/types/recipe'
 import { CATEGORY_LABELS } from '@/types/recipe'
 
 const props = defineProps<{

@@ -3,6 +3,7 @@ import { defineStore } from 'pinia'
 import type { ShoppingListItem, AddShoppingListItemDto } from '@/types/shoppingList'
 import type { RecipeIngredient } from '@/types/recipe'
 import { recipeApi } from '@/api/recipeApi'
+import { shoppingListApi } from '@/api/shoppingListApi'
 import { usePantryStore } from './pantryStore'
 
 const STORAGE_KEY = 'recipe_pantry_sync_shopping_list_v1'
@@ -28,12 +29,16 @@ function saveToStorage(items: ShoppingListItem[]): void {
 
 export const useShoppingListStore = defineStore('shoppingList', () => {
   const items = ref<ShoppingListItem[]>(loadFromStorage())
+  const loading = ref<boolean>(false)
+  const isSyncing = ref<boolean>(false)
+  const error = ref<string | null>(null)
   const isOffline = ref<boolean>(typeof navigator !== 'undefined' ? !navigator.onLine : false)
 
-  // Listen to network status for store awareness
+  // Listen to network status for store awareness & auto-sync
   if (typeof window !== 'undefined') {
     window.addEventListener('online', () => {
       isOffline.value = false
+      syncWithBackend()
     })
     window.addEventListener('offline', () => {
       isOffline.value = true
@@ -68,21 +73,71 @@ export const useShoppingListStore = defineStore('shoppingList', () => {
     return map
   })
 
+  // Synchronize with backend: push pending offline items and fetch updated server state
+  async function syncWithBackend(): Promise<void> {
+    if (isOffline.value) return
+
+    isSyncing.value = true
+    error.value = null
+    try {
+      // 1. Check for any items that were created offline and have temporary string IDs
+      const pendingItems = items.value.filter(
+        (i) => typeof i.id === 'string' && (i.id.startsWith('temp_') || i.id.startsWith('item_') || i.pendingSync)
+      )
+
+      if (pendingItems.length > 0) {
+        const dtos: AddShoppingListItemDto[] = pendingItems.map((p) => ({
+          ingredientId: p.ingredientId,
+          name: p.name,
+          category: p.category,
+          amount: p.amount,
+          unit: p.unit,
+          recipeTitle: p.recipeTitle,
+        }))
+        await shoppingListApi.createBatch(dtos)
+      }
+
+      // 2. Fetch authoritative list from backend
+      const serverItems = await shoppingListApi.getAll()
+      items.value = serverItems
+      saveToStorage(serverItems)
+    } catch (err) {
+      console.warn('Backend sync failed, falling back to local storage cache:', err)
+      // Keep local state intact
+    } finally {
+      isSyncing.value = false
+    }
+  }
+
+  // Initial fetch on store creation (skip in unit test environment)
+  if (typeof window !== 'undefined' && navigator.onLine && import.meta.env.MODE !== 'test') {
+    syncWithBackend()
+  }
+
   function addItem(dto: AddShoppingListItemDto): ShoppingListItem {
-    // If item with same name exists and is unchecked, merge or increment amount
+    // Check if item with same name exists and is unchecked -> merge
     const existing = items.value.find(
       (i) => i.name.toLowerCase().trim() === dto.name.toLowerCase().trim() && !i.checked
     )
 
     if (existing) {
       if (dto.amount && existing.amount && existing.unit === dto.unit) {
-        existing.amount += dto.amount
+        existing.amount = Math.round((existing.amount + dto.amount) * 100) / 100
+      }
+      // If online and it has a server ID, update on server
+      if (!isOffline.value && typeof existing.id === 'number' && import.meta.env.MODE !== 'test') {
+        shoppingListApi.update(existing.id, {
+          amount: existing.amount,
+          unit: existing.unit,
+        }).catch((err) => console.warn('Failed to update existing item on server:', err))
       }
       return existing
     }
 
+    // Optimistic local add
+    const tempId = `temp_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`
     const newItem: ShoppingListItem = {
-      id: `item_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+      id: tempId,
       ingredientId: dto.ingredientId,
       name: dto.name.trim(),
       category: dto.category || 'PANTRY',
@@ -91,10 +146,44 @@ export const useShoppingListStore = defineStore('shoppingList', () => {
       checked: false,
       recipeTitle: dto.recipeTitle,
       createdAt: new Date().toISOString(),
+      pendingSync: isOffline.value,
     }
 
     items.value.unshift(newItem)
+
+    // Sync with backend if online
+    if (!isOffline.value && import.meta.env.MODE !== 'test') {
+      shoppingListApi
+        .create(dto)
+        .then((created) => {
+          const idx = items.value.findIndex((i) => i.id === tempId)
+          if (idx !== -1) {
+            items.value[idx] = created
+          }
+        })
+        .catch((err) => {
+          console.warn('Failed to save item to server, kept locally as pending:', err)
+          newItem.pendingSync = true
+        })
+    }
+
     return newItem
+  }
+
+  async function addBatch(dtos: AddShoppingListItemDto[]): Promise<number> {
+    if (dtos.length === 0) return 0
+
+    // Optimistic add of each
+    for (const dto of dtos) {
+      addItem(dto)
+    }
+
+    // If online, trigger background sync
+    if (!isOffline.value) {
+      syncWithBackend().catch((e) => console.warn('Background sync failed after batch add:', e))
+    }
+
+    return dtos.length
   }
 
   async function addMissingIngredientsFromRecipe(
@@ -119,19 +208,38 @@ export const useShoppingListStore = defineStore('shoppingList', () => {
     return addedCount
   }
 
-  function toggleItem(id: string): void {
+  function toggleItem(id: number | string): void {
     const item = items.value.find((i) => i.id === id)
     if (item) {
       item.checked = !item.checked
+
+      // Sync to backend if online and item has a server ID
+      if (!isOffline.value && typeof id === 'number' && import.meta.env.MODE !== 'test') {
+        shoppingListApi.toggleChecked(id).catch((err) => {
+          console.warn('Failed to toggle item on server:', err)
+        })
+      }
     }
   }
 
-  function removeItem(id: string): void {
+  function removeItem(id: number | string): void {
     items.value = items.value.filter((i) => i.id !== id)
+
+    if (!isOffline.value && typeof id === 'number' && import.meta.env.MODE !== 'test') {
+      shoppingListApi.delete(id).catch((err) => {
+        console.warn('Failed to delete item from server:', err)
+      })
+    }
   }
 
   function clearChecked(): void {
     items.value = items.value.filter((i) => !i.checked)
+
+    if (!isOffline.value && import.meta.env.MODE !== 'test') {
+      shoppingListApi.clearCompleted().catch((err) => {
+        console.warn('Failed to clear completed items from server:', err)
+      })
+    }
   }
 
   function clearAll(): void {
@@ -141,7 +249,21 @@ export const useShoppingListStore = defineStore('shoppingList', () => {
   async function syncCheckedToPantry(): Promise<number> {
     const pantryStore = usePantryStore()
     const purchased = checkedItems.value
+    if (purchased.length === 0) return 0
 
+    // If online, use the atomic backend sync endpoint
+    if (!isOffline.value && import.meta.env.MODE !== 'test') {
+      try {
+        const res = await shoppingListApi.syncToPantry()
+        items.value = items.value.filter((i) => !i.checked)
+        await pantryStore.fetchPantry()
+        return res.syncedCount
+      } catch (err) {
+        console.warn('Backend syncToPantry failed, falling back to client-side sync:', err)
+      }
+    }
+
+    // Client-side / offline fallback
     let syncedCount = 0
     for (const item of purchased) {
       await pantryStore.addItem({
@@ -160,13 +282,18 @@ export const useShoppingListStore = defineStore('shoppingList', () => {
 
   return {
     items,
+    loading,
+    isSyncing,
+    error,
     isOffline,
     totalCount,
     remainingCount,
     uncheckedItems,
     checkedItems,
     itemsByCategory,
+    syncWithBackend,
     addItem,
+    addBatch,
     addMissingIngredientsFromRecipe,
     toggleItem,
     removeItem,

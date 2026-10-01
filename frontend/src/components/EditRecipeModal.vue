@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { reactive, ref, watch } from 'vue'
-import type { Recipe, UpdateRecipeDto, CreateRecipeIngredientDto, IngredientCategory } from '@/types/recipe'
+import type { Recipe, UpdateRecipeDto, CreateRecipeIngredientDto } from '@/types/recipe'
 import { MEASUREMENT_UNITS, CATEGORY_LABELS, INGREDIENT_CATEGORIES } from '@/types/recipe'
 
 const props = defineProps<{
