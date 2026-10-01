@@ -18,28 +18,50 @@ const emit = defineEmits<{
 const shoppingStore = useShoppingListStore()
 
 const loading = ref(true)
+const fetchError = ref<string | null>(null)
 const items = ref<MealPlanShoppingItem[]>([])
 const selectedIngredientIds = ref<Set<number>>(new Set())
 const submitting = ref(false)
 
-onMounted(async () => {
+const existingShoppingNames = computed(() => {
+  const set = new Set<string>()
+  for (const item of shoppingStore.uncheckedItems) {
+    set.add(item.name.toLowerCase().trim())
+  }
+  return set
+})
+
+function isAlreadyInShoppingList(item: MealPlanShoppingItem): boolean {
+  if (item.ingredientId && shoppingStore.uncheckedItems.some((i) => i.ingredientId === item.ingredientId)) {
+    return true
+  }
+  return existingShoppingNames.value.has(item.name.toLowerCase().trim())
+}
+
+async function loadData() {
   loading.value = true
+  fetchError.value = null
   try {
     const list = await props.fetchItems()
     items.value = list
-    // Pre-select items that are missing
+    // Pre-select items that are missing AND not already on the shopping list
     const selected = new Set<number>()
     for (const item of list) {
-      if (item.missingAmount > 0) {
+      if (item.missingAmount > 0 && !isAlreadyInShoppingList(item)) {
         selected.add(item.ingredientId)
       }
     }
     selectedIngredientIds.value = selected
   } catch (e) {
     console.error('Failed to calculate shopping list', e)
+    fetchError.value = 'Kunde inte hämta ingredienser för veckomenyn. Kontrollera nätverksanslutningen.'
   } finally {
     loading.value = false
   }
+}
+
+onMounted(() => {
+  loadData()
 })
 
 const missingItems = computed(() => items.value.filter((i) => i.missingAmount > 0))
@@ -75,11 +97,13 @@ function handleAddSelected() {
 
   for (const item of items.value) {
     if (selectedIngredientIds.value.has(item.ingredientId)) {
+      const rawAmount = item.missingAmount > 0 ? item.missingAmount : item.neededAmount
+      const roundedAmount = Math.round(rawAmount * 100) / 100
       shoppingStore.addItem({
         ingredientId: item.ingredientId,
         name: item.name,
         category: item.category,
-        amount: item.missingAmount > 0 ? item.missingAmount : item.neededAmount,
+        amount: roundedAmount,
         unit: item.unit,
         recipeTitle: item.recipeTitles.length > 0 ? item.recipeTitles.join(', ') : props.weekLabel,
       })
@@ -91,6 +115,7 @@ function handleAddSelected() {
   emit('success', addedCount)
   emit('close')
 }
+
 </script>
 
 <template>
@@ -132,6 +157,19 @@ function handleAddSelected() {
         <div v-if="loading" class="py-12 text-center text-gray-500 text-sm">
           <div class="inline-block animate-spin text-2xl mb-2">⏳</div>
           <p class="font-medium">Beräknar ingredienser och stämmer av mot skafferiet...</p>
+        </div>
+
+        <!-- Error State -->
+        <div v-else-if="fetchError" class="py-10 text-center space-y-3">
+          <div class="text-3xl">⚠️</div>
+          <p class="text-sm font-semibold text-gray-800">{{ fetchError }}</p>
+          <button
+            type="button"
+            @click="loadData"
+            class="px-4 py-2 rounded-xl text-xs font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 transition-colors cursor-pointer"
+          >
+            Försök igen
+          </button>
         </div>
 
         <!-- Empty State -->
@@ -201,7 +239,14 @@ function handleAddSelected() {
                       >
                         {{ CATEGORY_LABELS[item.category]?.label || item.category }}
                       </span>
+                      <span
+                        v-if="isAlreadyInShoppingList(item)"
+                        class="text-[10px] bg-blue-50 text-blue-700 border border-blue-200 px-1.5 py-0.5 rounded-full font-semibold"
+                      >
+                        Redan i listan
+                      </span>
                     </div>
+
                     <div class="text-[11px] text-gray-500 mt-0.5 flex items-center gap-2">
                       <span>Från: {{ item.recipeTitles.join(', ') }}</span>
                       <span v-if="item.pantryAmount > 0" class="text-amber-700">

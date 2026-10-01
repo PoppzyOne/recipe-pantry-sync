@@ -14,6 +14,7 @@ import com.recipesync.repository.RecipeRepository;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
+import jakarta.ws.rs.BadRequestException;
 import jakarta.ws.rs.NotFoundException;
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -60,6 +61,19 @@ public class MealPlanService {
 
     @Transactional
     public MealPlanItemResponseDto create(CreateMealPlanItemDto dto) {
+        if (dto.planDate() == null) {
+            throw new BadRequestException("Plan date is required");
+        }
+        if (dto.mealType() == null) {
+            throw new BadRequestException("Meal type is required");
+        }
+        if (dto.recipeId() == null && (dto.customTitle() == null || dto.customTitle().trim().isEmpty())) {
+            throw new BadRequestException("Either recipeId or customTitle must be provided");
+        }
+        if (dto.servings() != null && dto.servings() <= 0) {
+            throw new BadRequestException("Servings must be positive");
+        }
+
         MealPlanItem item = new MealPlanItem();
         item.planDate = dto.planDate();
         item.mealType = dto.mealType();
@@ -91,16 +105,27 @@ public class MealPlanService {
             item.mealType = dto.mealType();
         }
         if (dto.servings() != null) {
+            if (dto.servings() <= 0) {
+                throw new BadRequestException("Servings must be positive");
+            }
             item.servings = dto.servings();
         }
-        item.customTitle = dto.customTitle() != null ? dto.customTitle().trim() : null;
-        item.notes = dto.notes() != null ? dto.notes().trim() : null;
+        if (dto.customTitle() != null) {
+            item.customTitle = dto.customTitle().trim();
+        }
+        if (dto.notes() != null) {
+            item.notes = dto.notes().trim();
+        }
 
         if (dto.recipeId() != null) {
             Recipe recipe = recipeRepository.findByIdOptional(dto.recipeId())
                     .orElseThrow(() -> new NotFoundException("Recipe not found with id: " + dto.recipeId()));
             item.recipe = recipe;
-        } else {
+        } else if (dto.recipeId() == null && dto.customTitle() != null) {
+            // Cleared recipe, keep or set custom title
+            if (item.customTitle == null || item.customTitle.isEmpty()) {
+                throw new BadRequestException("Either recipeId or customTitle must be provided");
+            }
             item.recipe = null;
         }
 
@@ -116,6 +141,13 @@ public class MealPlanService {
     }
 
     public List<MealPlanShoppingItemDto> calculateShoppingList(LocalDate startDate, LocalDate endDate) {
+        if (startDate == null || endDate == null) {
+            throw new BadRequestException("Both startDate and endDate are required");
+        }
+        if (startDate.isAfter(endDate)) {
+            throw new BadRequestException("startDate must be before or equal to endDate");
+        }
+
         List<MealPlanItem> mealPlans = mealPlanItemRepository.findBetweenDates(startDate, endDate);
 
         // Group required ingredients by ingredient ID + unit
@@ -129,7 +161,10 @@ public class MealPlanService {
             int baseServings = (planItem.recipe.servings != null && planItem.recipe.servings > 0)
                     ? planItem.recipe.servings
                     : 4;
-            double scaleFactor = (double) planItem.servings / baseServings;
+            int currentServings = (planItem.servings != null && planItem.servings > 0)
+                    ? planItem.servings
+                    : 4;
+            double scaleFactor = (double) currentServings / baseServings;
 
             for (RecipeIngredient ri : planItem.recipe.ingredients) {
                 String key = ri.ingredient.id + "_" + (ri.unit != null ? ri.unit.toLowerCase().trim() : "");
@@ -156,12 +191,16 @@ public class MealPlanService {
 
             double pantryAmount = 0.0;
             boolean hasStock = false;
+            Double pQty = null;
+            String pUnit = null;
 
             if (pantryItemOpt.isPresent()) {
                 PantryItem pi = pantryItemOpt.get();
                 hasStock = pi.inStock;
-                if (pi.quantity != null) {
-                    pantryAmount = pi.quantity;
+                pQty = pi.quantity;
+                pUnit = pi.unit;
+                if (pQty != null) {
+                    pantryAmount = pQty;
                 }
             }
 
@@ -169,10 +208,20 @@ public class MealPlanService {
             double missingAmount;
 
             if (hasStock) {
-                if (pantryAmount > 0 && roundedNeeded > 0) {
-                    missingAmount = Math.max(0.0, roundToTwoDecimals(roundedNeeded - pantryAmount));
+                if (pQty != null) {
+                    Double convertedPantryQty = convertQuantity(pQty, pUnit, agg.unit);
+                    if (convertedPantryQty != null) {
+                        pantryAmount = convertedPantryQty;
+                        missingAmount = Math.max(0.0, roundToTwoDecimals(roundedNeeded - convertedPantryQty));
+                    } else if (isCompatibleStockUnit(pUnit, agg.unit)) {
+                        missingAmount = Math.max(0.0, roundToTwoDecimals(roundedNeeded - pQty));
+                    } else {
+                        // In stock, but packaging unit is not directly convertible (e.g. 1 burk vs 2 msk)
+                        missingAmount = 0.0;
+                    }
                 } else {
-                    missingAmount = 0.0; // In stock without specific quantity tracked
+                    // In stock without specific numeric quantity tracked (qualitative)
+                    missingAmount = 0.0;
                 }
             } else {
                 missingAmount = roundedNeeded > 0 ? roundedNeeded : 1.0;
@@ -193,6 +242,7 @@ public class MealPlanService {
         return result;
     }
 
+
     public MealPlanItemResponseDto toDto(MealPlanItem item) {
         return new MealPlanItemResponseDto(
                 item.id,
@@ -206,6 +256,64 @@ public class MealPlanService {
                 item.createdAt,
                 item.updatedAt
         );
+    }
+
+    private Double convertQuantity(double quantity, String fromUnit, String toUnit) {
+        if (fromUnit == null || toUnit == null) {
+            return quantity;
+        }
+        String from = fromUnit.trim().toLowerCase();
+        String to = toUnit.trim().toLowerCase();
+        if (from.equals(to)) {
+            return quantity;
+        }
+
+        // Weight conversions: g <-> kg
+        if (from.equals("kg") && to.equals("g")) {
+            return quantity * 1000.0;
+        }
+        if (from.equals("g") && to.equals("kg")) {
+            return quantity / 1000.0;
+        }
+
+        // Volume conversions: ml, cl, dl, l, msk, tsk, krm
+        Double fromMl = toMilliliters(quantity, from);
+        if (fromMl != null) {
+            return fromMilliliters(fromMl, to);
+        }
+
+        return null;
+    }
+
+    private Double toMilliliters(double qty, String unit) {
+        return switch (unit) {
+            case "ml", "krm" -> qty;
+            case "cl" -> qty * 10.0;
+            case "msk" -> qty * 15.0;
+            case "tsk" -> qty * 5.0;
+            case "dl" -> qty * 100.0;
+            case "l" -> qty * 1000.0;
+            default -> null;
+        };
+    }
+
+    private Double fromMilliliters(double ml, String targetUnit) {
+        return switch (targetUnit) {
+            case "ml", "krm" -> ml;
+            case "cl" -> ml / 10.0;
+            case "msk" -> ml / 15.0;
+            case "tsk" -> ml / 5.0;
+            case "dl" -> ml / 100.0;
+            case "l" -> ml / 1000.0;
+            default -> null;
+        };
+    }
+
+    private boolean isCompatibleStockUnit(String pUnit, String recipeUnit) {
+        if (pUnit == null || recipeUnit == null) {
+            return true;
+        }
+        return pUnit.trim().equalsIgnoreCase(recipeUnit.trim());
     }
 
     private double roundToTwoDecimals(double val) {

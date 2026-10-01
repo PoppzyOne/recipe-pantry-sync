@@ -127,4 +127,137 @@ class MealPlanResourceTest {
                 .then()
                 .statusCode(404);
     }
+
+    @Test
+    @Order(7)
+    void testCreateMealPlanValidation_MissingDate() {
+        String json = """
+                {
+                    "mealType": "DINNER",
+                    "recipeId": 1
+                }
+                """;
+
+        given()
+                .contentType(ContentType.JSON)
+                .body(json)
+                .when().post("/api/meal-plans")
+                .then()
+                .statusCode(400);
+    }
+
+    @Test
+    @Order(8)
+    void testCreateMealPlanValidation_MissingMealType() {
+        String today = LocalDate.now().toString();
+        String json = """
+                {
+                    "planDate": "%s",
+                    "recipeId": 1
+                }
+                """.formatted(today);
+
+        given()
+                .contentType(ContentType.JSON)
+                .body(json)
+                .when().post("/api/meal-plans")
+                .then()
+                .statusCode(400);
+    }
+
+    @Test
+    @Order(9)
+    void testCreateMealPlanValidation_MissingRecipeAndCustomTitle() {
+        String today = LocalDate.now().toString();
+        String json = """
+                {
+                    "planDate": "%s",
+                    "mealType": "DINNER"
+                }
+                """.formatted(today);
+
+        given()
+                .contentType(ContentType.JSON)
+                .body(json)
+                .when().post("/api/meal-plans")
+                .then()
+                .statusCode(400);
+    }
+
+    @Test
+    @Order(10)
+    void testCreateMealPlanValidation_InvalidServings() {
+        String today = LocalDate.now().toString();
+        String json = """
+                {
+                    "planDate": "%s",
+                    "mealType": "DINNER",
+                    "recipeId": 1,
+                    "servings": -2
+                }
+                """.formatted(today);
+
+        given()
+                .contentType(ContentType.JSON)
+                .body(json)
+                .when().post("/api/meal-plans")
+                .then()
+                .statusCode(400);
+    }
+
+    @Test
+    @Order(11)
+    void testCalculateShoppingListValidation_MissingDates() {
+        given()
+                .when().get("/api/meal-plans/shopping-list")
+                .then()
+                .statusCode(400);
+    }
+
+    @Test
+    @Order(12)
+    void testCalculateShoppingListValidation_InvalidDateRange() {
+        String today = LocalDate.now().toString();
+        String yesterday = LocalDate.now().minusDays(1).toString();
+
+        given()
+                .queryParam("startDate", today)
+                .queryParam("endDate", yesterday)
+                .when().get("/api/meal-plans/shopping-list")
+                .then()
+                .statusCode(400);
+    }
+
+    @Test
+    @Order(13)
+    void testCreateMealPlanWithCustomTitle() {
+        String today = LocalDate.now().toString();
+        String json = """
+                {
+                    "planDate": "%s",
+                    "mealType": "LUNCH",
+                    "customTitle": "Restfest och mackor",
+                    "servings": 2,
+                    "notes": "Ät upp rester"
+                }
+                """.formatted(today);
+
+        Number id = given()
+                .contentType(ContentType.JSON)
+                .body(json)
+                .when().post("/api/meal-plans")
+                .then()
+                .statusCode(201)
+                .body("id", notNullValue())
+                .body("customTitle", equalTo("Restfest och mackor"))
+                .body("servings", equalTo(2))
+                .extract().path("id");
+
+        // Clean up
+        given()
+                .when().delete("/api/meal-plans/" + id.longValue())
+                .then()
+                .statusCode(204);
+    }
 }
+

@@ -7,6 +7,10 @@ import { MEAL_TYPE_LABELS } from '@/types/mealPlan'
 import MealModal from './MealModal.vue'
 import GenerateShoppingListModal from './GenerateShoppingListModal.vue'
 
+const emit = defineEmits<{
+  (e: 'view-recipe', recipeId: number): void
+}>()
+
 const mealPlanStore = useMealPlanStore()
 const recipeStore = useRecipeStore()
 
@@ -34,16 +38,28 @@ function showNotification(msg: string) {
 
 function openAddMeal(day?: WeekDay, mealType: MealType = 'DINNER') {
   editingMeal.value = null
-  selectedDate.value = day ? day.date : mealPlanStore.weekStartDate
+  mealPlanStore.clearError()
+  if (day) {
+    selectedDate.value = day.date
+  } else {
+    const today = mealPlanStore.weekDays.find((d) => d.isToday)
+    selectedDate.value = today ? today.date : mealPlanStore.weekStartDate
+  }
   selectedMealType.value = mealType
   isMealModalOpen.value = true
 }
 
 function openEditMeal(meal: MealPlanItem) {
   editingMeal.value = meal
+  mealPlanStore.clearError()
   selectedDate.value = meal.planDate
   selectedMealType.value = meal.mealType
   isMealModalOpen.value = true
+}
+
+function handleViewRecipe(recipeId: number) {
+  isMealModalOpen.value = false
+  emit('view-recipe', recipeId)
 }
 
 async function handleSaveMeal(data: {
@@ -88,6 +104,7 @@ function handleShoppingSuccess(count: number) {
   showNotification(`Lade till ${count} varor i inköpslistan!`)
 }
 </script>
+
 
 <template>
   <div class="space-y-6">
@@ -134,6 +151,12 @@ function handleShoppingSuccess(count: number) {
             >
               Idag
             </button>
+            <span
+              v-if="mealPlanStore.isOffline"
+              class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200"
+            >
+              📱 Offline
+            </span>
           </div>
           <span class="text-xs text-gray-500 font-medium">
             {{ mealPlanStore.weekStartDate }} – {{ mealPlanStore.weekEndDate }}
@@ -250,7 +273,7 @@ function handleShoppingSuccess(count: number) {
             >
               <div class="flex items-start justify-between gap-1">
                 <span class="text-xs font-bold text-gray-900 group-hover:text-emerald-700 transition-colors leading-snug">
-                  {{ item.recipeTitle || item.customTitle }}
+                  {{ item.recipeTitle || item.customTitle || 'Namnlös måltid' }}
                 </span>
                 <span class="text-[10px] bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded-md font-medium shrink-0">
                   {{ item.servings }}p
@@ -302,7 +325,7 @@ function handleShoppingSuccess(count: number) {
             >
               <div class="flex items-start justify-between gap-1">
                 <span class="text-xs font-bold text-gray-900 group-hover:text-emerald-700 transition-colors leading-snug">
-                  {{ item.recipeTitle || item.customTitle }}
+                  {{ item.recipeTitle || item.customTitle || 'Namnlös måltid' }}
                 </span>
                 <span class="text-[10px] bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded-md font-medium shrink-0">
                   {{ item.servings }}p
@@ -342,10 +365,20 @@ function handleShoppingSuccess(count: number) {
               @click="openEditMeal(item)"
               class="p-1.5 rounded-lg border border-gray-100 bg-gray-50 text-[11px] font-medium text-gray-700 hover:border-gray-300 cursor-pointer flex items-center justify-between"
             >
-              <span>{{ MEAL_TYPE_LABELS[item.mealType]?.icon }} {{ item.recipeTitle || item.customTitle }}</span>
+              <span>{{ MEAL_TYPE_LABELS[item.mealType]?.icon }} {{ item.recipeTitle || item.customTitle || 'Namnlös måltid' }}</span>
               <span class="text-[10px] text-gray-400">{{ item.servings }}p</span>
             </div>
           </div>
+
+          <!-- Quick link to add breakfast or snack -->
+          <button
+            type="button"
+            @click="openAddMeal(day, 'BREAKFAST')"
+            class="text-[10px] text-gray-400 hover:text-emerald-700 font-semibold text-center py-1 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer flex items-center justify-center gap-1 border-t border-gray-50"
+          >
+            <span>+</span>
+            <span>Frukost / Mellanmål</span>
+          </button>
         </div>
       </div>
     </div>
@@ -358,10 +391,13 @@ function handleShoppingSuccess(count: number) {
       :meal-to-edit="editingMeal"
       :recipes="recipeStore.recipes"
       :submitting="isSubmitting"
+      :error="mealPlanStore.error"
       @close="isMealModalOpen = false"
       @save="handleSaveMeal"
       @delete="handleDeleteMeal"
+      @view-recipe="handleViewRecipe"
     />
+
 
     <!-- Generate Shopping List Modal -->
     <GenerateShoppingListModal

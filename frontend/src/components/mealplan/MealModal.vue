@@ -11,6 +11,7 @@ const props = defineProps<{
   mealToEdit?: MealPlanItem | null
   recipes: Recipe[]
   submitting?: boolean
+  error?: string | null
 }>()
 
 const emit = defineEmits<{
@@ -27,6 +28,7 @@ const emit = defineEmits<{
     }
   ): void
   (e: 'delete', id: number): void
+  (e: 'view-recipe', recipeId: number): void
 }>()
 
 const mode = ref<'recipe' | 'custom'>('recipe')
@@ -89,6 +91,22 @@ const filteredRecipes = computed(() => {
   return props.recipes.filter((r) => r.title.toLowerCase().includes(q))
 })
 
+// Auto-select first matching recipe if current selection is filtered out
+watch(
+  () => filteredRecipes.value,
+  (newList) => {
+    if (mode.value === 'recipe' && newList.length > 0) {
+      const currentExists = newList.some((r) => r.id === selectedRecipeId.value)
+      if (!currentExists && newList[0]) {
+        selectedRecipeId.value = newList[0].id
+        if (newList[0].servings) {
+          servings.value = newList[0].servings
+        }
+      }
+    }
+  }
+)
+
 function handleRecipeChange(id: number) {
   selectedRecipeId.value = id
   const rec = props.recipes.find((r) => r.id === id)
@@ -119,12 +137,14 @@ function handleSubmit() {
     }
   }
 
+  const safeServings = Math.max(1, Math.min(50, Math.floor(Number(servings.value) || 4)))
+
   emit('save', {
     planDate: selectedDate.value,
     mealType: selectedMealType.value,
     recipeId: mode.value === 'recipe' ? selectedRecipeId.value : null,
     customTitle: mode.value === 'custom' ? customTitle.value.trim() : null,
-    servings: Number(servings.value) || 4,
+    servings: safeServings,
     notes: notes.value.trim() || null,
   })
 }
@@ -134,6 +154,7 @@ function handleDelete() {
     emit('delete', props.mealToEdit.id)
   }
 }
+
 </script>
 
 <template>
@@ -163,6 +184,11 @@ function handleDelete() {
 
       <!-- Form Body -->
       <form @submit.prevent="handleSubmit" class="p-6 space-y-4">
+        <!-- Error alert -->
+        <div v-if="error" class="p-3 bg-red-50 text-red-700 rounded-xl border border-red-200 text-xs font-medium">
+          {{ error }}
+        </div>
+
         <!-- Date and Meal Type -->
         <div class="grid grid-cols-2 gap-3">
           <div>
@@ -232,7 +258,11 @@ function handleDelete() {
               placeholder="Sök recept..."
               class="w-full text-xs rounded-xl border border-gray-200 px-3 py-1.5 bg-gray-50 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
             />
+            <div v-if="filteredRecipes.length === 0" class="text-xs text-gray-500 italic py-2 text-center bg-gray-50 rounded-xl border border-gray-100">
+              Inga recept matchar sökningen "{{ recipeSearch }}".
+            </div>
             <select
+              v-else
               :value="selectedRecipeId"
               @change="handleRecipeChange(Number(($event.target as HTMLSelectElement).value))"
               class="w-full text-sm rounded-xl border border-gray-200 px-3 py-2.5 bg-gray-50 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all font-medium cursor-pointer"
@@ -241,9 +271,19 @@ function handleDelete() {
                 {{ r.title }} ({{ r.servings || 4 }} port)
               </option>
             </select>
+            <div v-if="selectedRecipeId" class="flex justify-end pt-0.5">
+              <button
+                type="button"
+                @click="emit('view-recipe', selectedRecipeId!)"
+                class="text-xs text-emerald-600 hover:text-emerald-700 font-semibold flex items-center gap-1 cursor-pointer"
+              >
+                <span>📖</span> Visa receptdetaljer
+              </button>
+            </div>
           </div>
           <p v-if="titleError" class="text-xs text-red-600 font-medium">{{ titleError }}</p>
         </div>
+
 
         <!-- Custom Dish Mode -->
         <div v-else class="space-y-1">

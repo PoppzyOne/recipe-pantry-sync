@@ -1,7 +1,7 @@
 import type { IngredientCategory } from './recipe'
 
 export interface ShoppingListItem {
-  id: string
+  id: number | string
   ingredientId?: number | null
   name: string
   category: IngredientCategory
@@ -10,6 +10,7 @@ export interface ShoppingListItem {
   checked: boolean
   recipeTitle?: string | null
   createdAt: string
+  pendingSync?: boolean
 }
 
 export interface AddShoppingListItemDto {
@@ -18,5 +19,15 @@ export interface AddShoppingListItemDto {
   category?: IngredientCategory | null
   amount?: number | null
   unit?: string | null
+  recipeTitle?: string | null
+}
+
+export interface UpdateShoppingListItemDto {
+  ingredientId?: number | null
+  name?: string | null
+  category?: IngredientCategory | null
+  amount?: number | null
+  unit?: string | null
+  checked?: boolean | null
   recipeTitle?: string | null
 }

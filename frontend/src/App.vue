@@ -53,6 +53,13 @@ function handleSelectRecipe(recipe: Recipe) {
   selectedRecipe.value = recipe
 }
 
+function handleViewRecipeFromPlanner(recipeId: number) {
+  const found = recipeStore.recipes.find((r) => r.id === recipeId)
+  if (found) {
+    selectedRecipe.value = found
+  }
+}
+
 function handleOpenEditRecipe(recipe: Recipe) {
   selectedRecipe.value = null
   editingRecipe.value = recipe
@@ -277,7 +284,7 @@ async function handleSaveEditRecipe(dto: UpdateRecipeDto) {
 
       <!-- Tab 2: Veckoplanering -->
       <section v-else-if="activeTab === 'planner'">
-        <MealPlannerView />
+        <MealPlannerView @view-recipe="handleViewRecipeFromPlanner" />
       </section>
 
       <!-- Tab 3: Skafferi -->
