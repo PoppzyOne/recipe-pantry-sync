@@ -4,7 +4,7 @@ import { useRecipeStore } from '@/stores/recipeStore'
 import { usePantryStore } from '@/stores/pantryStore'
 import { useShoppingListStore } from '@/stores/shoppingListStore'
 import type { Recipe, CreateRecipeDto, UpdateRecipeDto } from '@/types/recipe'
-import RecipeCard from '@/components/RecipeCard.vue'
+import RecipeListView from '@/components/recipe/RecipeListView.vue'
 import CreateRecipeModal from '@/components/CreateRecipeModal.vue'
 import EditRecipeModal from '@/components/EditRecipeModal.vue'
 import RecipeDetailsModal from '@/components/RecipeDetailsModal.vue'
@@ -220,66 +220,12 @@ async function handleSaveEditRecipe(dto: UpdateRecipeDto) {
 
       <!-- Tab 1: Recept -->
       <section v-if="activeTab === 'recipes'">
-        <!-- Loading skeleton -->
-        <div v-if="recipeStore.loading && recipeStore.recipes.length === 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <div
-            v-for="i in 3"
-            :key="i"
-            class="bg-white rounded-xl border border-gray-200 p-5 animate-pulse space-y-4"
-          >
-            <div class="h-5 bg-gray-200 rounded-md w-3/4"></div>
-            <div class="h-3 bg-gray-100 rounded-md w-full"></div>
-            <div class="h-3 bg-gray-100 rounded-md w-2/3"></div>
-            <div class="pt-4 border-t border-gray-100 flex justify-between">
-              <div class="h-3 bg-gray-200 rounded-md w-1/4"></div>
-              <div class="h-3 bg-gray-200 rounded-md w-1/4"></div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Empty state -->
-        <div
-          v-else-if="recipeStore.recipes.length === 0 && !recipeStore.loading"
-          class="bg-white rounded-2xl border border-dashed border-gray-300 p-12 text-center max-w-md mx-auto my-12"
-        >
-          <div class="w-14 h-14 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center mx-auto mb-4 text-2xl">
-            📖
-          </div>
-          <h3 class="text-lg font-bold text-gray-900 mb-1">Inga recept ännu</h3>
-          <p class="text-sm text-gray-500 mb-6">
-            Börja med att skapa ditt första recept för att bygga upp din receptbank.
-          </p>
-          <button
-            type="button"
-            class="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold px-4 py-2.5 rounded-xl shadow-xs transition-colors cursor-pointer"
-            @click="isCreateModalOpen = true"
-          >
-            Skapa ditt första recept
-          </button>
-        </div>
-
-        <!-- Recipe list grid -->
-        <div v-else>
-          <div class="flex items-center justify-between mb-6">
-            <h2 class="text-xl font-bold text-gray-900">
-              Sparade recept
-              <span class="ml-2 text-xs font-semibold px-2 py-0.5 rounded-full bg-gray-100 text-gray-600">
-                {{ recipeStore.recipes.length }}
-              </span>
-            </h2>
-          </div>
-
-          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <RecipeCard
-              v-for="recipe in recipeStore.recipes"
-              :key="recipe.id"
-              :recipe="recipe"
-              @select="handleSelectRecipe"
-              @edit="handleOpenEditRecipe"
-              @delete="handleDeleteRecipe"
-            />
-          </div>
-        </div>
+        <RecipeListView
+          @select="handleSelectRecipe"
+          @edit="handleOpenEditRecipe"
+          @delete="handleDeleteRecipe"
+          @create="isCreateModalOpen = true"
+        />
       </section>
 
       <!-- Tab 2: Veckoplanering -->

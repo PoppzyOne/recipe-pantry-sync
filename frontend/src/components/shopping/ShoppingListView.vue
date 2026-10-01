@@ -46,6 +46,40 @@ async function handleSyncToPantry() {
   showToast(`${count} köpta varor uppdaterade i skafferiet!`)
 }
 
+async function handleShareList() {
+  const shareText = shoppingStore.getFormattedShareText()
+  if (!shareText || shoppingStore.uncheckedItems.length === 0) {
+    showToast('Inga oavbockade varor att dela!')
+    return
+  }
+
+  if (typeof navigator !== 'undefined' && navigator.share) {
+    try {
+      await navigator.share({
+        title: 'Inköpslista – Skafferiet',
+        text: shareText,
+      })
+      showToast('Inköpslistan har delats!')
+      return
+    } catch (e) {
+      if ((e as Error).name === 'AbortError') return
+    }
+  }
+
+  // Fallback to clipboard
+  if (typeof navigator !== 'undefined' && navigator.clipboard) {
+    try {
+      await navigator.clipboard.writeText(shareText)
+      showToast('Inköpslistan kopierad till urklipp!')
+      return
+    } catch {
+      // Fallback
+    }
+  }
+
+  showToast('Kunde inte dela inköpslistan')
+}
+
 function showToast(msg: string) {
   toastMessage.value = msg
   setTimeout(() => {
@@ -89,7 +123,19 @@ function showToast(msg: string) {
         </p>
       </div>
 
-      <div class="flex items-center gap-2 self-stretch sm:self-auto">
+      <div class="flex flex-wrap items-center gap-2 self-stretch sm:self-auto">
+        <!-- Share List button -->
+        <button
+          v-if="shoppingStore.uncheckedItems.length > 0"
+          type="button"
+          @click="handleShareList"
+          class="inline-flex items-center justify-center gap-1.5 bg-white hover:bg-gray-50 active:bg-gray-100 text-gray-700 text-xs font-semibold px-3 py-2 rounded-xl border border-gray-200 shadow-2xs transition-colors cursor-pointer"
+          title="Dela eller kopiera inköpslistan"
+        >
+          <span>📤</span>
+          <span>Dela lista</span>
+        </button>
+
         <button
           v-if="shoppingStore.checkedItems.length > 0"
           type="button"
@@ -104,7 +150,7 @@ function showToast(msg: string) {
         <button
           v-if="shoppingStore.checkedItems.length > 0"
           type="button"
-          class="text-xs text-gray-500 hover:text-gray-700 px-3 py-2 rounded-lg hover:bg-gray-100 transition-colors"
+          class="text-xs text-gray-500 hover:text-gray-700 px-3 py-2 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
           @click="shoppingStore.clearChecked"
         >
           Rensa avbockade
