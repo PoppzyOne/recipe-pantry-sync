@@ -1,6 +1,6 @@
 # Skafferiet (Recipe & Pantry Sync)
 
-[![CI](https://github.com/PoppzyOne/recipe-pantry-sync/actions/workflows/ci.yml/badge.svg)](https://github.com/PoppzyOne/recipe-pantry-sync/actions/workflows/ci.yml)
+[![CI](https://github.com/PoppzyOne/recipe-pantry-sync/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/PoppzyOne/recipe-pantry-sync/actions/workflows/ci.yml)
 
 > A modern, lightweight, full-stack application for managing recipes, weekly meal planning, pantry inventory, and an **offline-first** synchronized shopping list that works reliably even inside grocery stores with poor cellular coverage.
 
