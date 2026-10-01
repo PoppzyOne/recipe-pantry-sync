@@ -30,7 +30,7 @@ describe('recipeStore', () => {
       },
     ]
 
-    global.fetch = vi.fn().mockResolvedValue({
+    global.fetch = vi.fn<typeof fetch>().mockResolvedValue({
       ok: true,
       status: 200,
       json: async () => mockRecipes,
@@ -46,7 +46,7 @@ describe('recipeStore', () => {
   })
 
   it('handles fetch errors properly', async () => {
-    global.fetch = vi.fn().mockResolvedValue({
+    global.fetch = vi.fn<typeof fetch>().mockResolvedValue({
       ok: false,
       status: 500,
       statusText: 'Internal Server Error',
@@ -91,7 +91,7 @@ describe('recipeStore', () => {
       updatedAt: '2026-09-25T13:00:00Z',
     }
 
-    global.fetch = vi.fn().mockResolvedValue({
+    global.fetch = vi.fn<typeof fetch>().mockResolvedValue({
       ok: true,
       status: 200,
       json: async () => updatedRecipe,

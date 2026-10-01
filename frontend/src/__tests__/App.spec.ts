@@ -7,7 +7,7 @@ describe('App', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
     // Mock global fetch to return an empty recipe list by default
-    global.fetch = vi.fn().mockResolvedValue({
+    global.fetch = vi.fn<typeof fetch>().mockResolvedValue({
       ok: true,
       status: 200,
       json: async () => [],

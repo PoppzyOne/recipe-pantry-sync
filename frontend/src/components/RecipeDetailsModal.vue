@@ -37,7 +37,7 @@ async function handleAddMissingToShoppingList() {
     } else {
       syncMessage.value = 'Alla råvaror finns redan hemma i skafferiet!'
     }
-  } catch (e) {
+  } catch {
     syncMessage.value = 'Kunde inte synka ingredienser just nu.'
   } finally {
     isAddingToShopping.value = false

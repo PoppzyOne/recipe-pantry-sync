@@ -32,7 +32,7 @@ describe('pantryStore', () => {
       },
     ]
 
-    global.fetch = vi.fn().mockResolvedValue({
+    global.fetch = vi.fn<typeof fetch>().mockResolvedValue({
       ok: true,
       status: 200,
       json: async () => mockPantry,
@@ -72,7 +72,7 @@ describe('pantryStore', () => {
       },
     ]
 
-    global.fetch = vi.fn().mockResolvedValue({
+    global.fetch = vi.fn<typeof fetch>().mockResolvedValue({
       ok: true,
       status: 200,
       json: async () => mockPantry,
@@ -118,7 +118,7 @@ describe('pantryStore', () => {
       updatedAt: '2026-09-25T13:00:00Z',
     }
 
-    global.fetch = vi.fn().mockResolvedValue({
+    global.fetch = vi.fn<typeof fetch>().mockResolvedValue({
       ok: true,
       status: 200,
       json: async () => updatedItem,
