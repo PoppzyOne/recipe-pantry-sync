@@ -111,7 +111,7 @@ async function handleSaveEditRecipe(dto: UpdateRecipeDto) {
           </div>
           <div>
             <h1 class="text-lg font-bold text-gray-900 leading-tight">Skafferiet</h1>
-            <p class="text-xs text-gray-500">Recept, skafferi och inköpslista</p>
+            <p class="text-xs text-gray-500 hidden sm:block">Recept, skafferi och inköpslista</p>
           </div>
         </div>
 
@@ -160,23 +160,26 @@ async function handleSaveEditRecipe(dto: UpdateRecipeDto) {
         <div v-if="activeTab === 'recipes'" class="flex items-center gap-2">
           <button
             type="button"
-            class="hidden sm:inline-flex items-center gap-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs sm:text-sm font-semibold px-3 py-2 rounded-xl transition-colors cursor-pointer"
+            class="inline-flex items-center gap-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs sm:text-sm font-semibold px-2.5 sm:px-3 py-2 rounded-xl transition-colors cursor-pointer shrink-0"
+            title="Importera recept"
             @click="handleOpenImportModal"
           >
-            📥 Importera
+            <span>📥</span>
+            <span>Importera</span>
           </button>
           <button
             type="button"
-            class="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white text-xs sm:text-sm font-semibold px-3.5 sm:px-4 py-2 rounded-xl shadow-xs transition-colors cursor-pointer"
+            class="inline-flex items-center gap-1.5 sm:gap-2 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white text-xs sm:text-sm font-semibold px-2.5 sm:px-4 py-2 rounded-xl shadow-xs transition-colors cursor-pointer shrink-0"
+            title="Skapa nytt recept"
             @click="handleOpenCreateModal"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
             </svg>
-            Nytt recept
+            <span>Nytt recept</span>
           </button>
         </div>
-        <div v-else class="w-24 sm:w-auto"></div>
+        <div v-else class="hidden sm:block w-24 sm:w-auto"></div>
       </div>
 
       <!-- Mobile Tab Bar -->

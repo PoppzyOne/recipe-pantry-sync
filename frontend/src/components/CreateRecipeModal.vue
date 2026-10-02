@@ -139,9 +139,11 @@ function handleSubmit() {
             v-if="!props.initialData"
             type="button"
             @click="emit('openImport')"
-            class="hidden sm:inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-700 hover:text-emerald-800 px-3 py-1.5 rounded-lg border border-emerald-200 bg-emerald-50/60 hover:bg-emerald-100/60 transition-colors cursor-pointer"
+            class="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-700 hover:text-emerald-800 px-2.5 sm:px-3 py-1.5 rounded-lg border border-emerald-200 bg-emerald-50/60 hover:bg-emerald-100/60 transition-colors cursor-pointer shrink-0"
           >
-            📥 Importera från länk
+            <span>📥</span>
+            <span class="hidden sm:inline">Importera från länk</span>
+            <span class="sm:hidden">Importera</span>
           </button>
           <button
             type="button"
