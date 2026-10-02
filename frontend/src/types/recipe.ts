@@ -114,3 +114,21 @@ export interface UpdateRecipeDto {
   cookTimeMinutes?: number | null
   ingredients?: CreateRecipeIngredientDto[] | null
 }
+
+export interface ImportRecipeRequestDto {
+  url?: string | null
+  text?: string | null
+}
+
+export interface ImportedRecipeDto {
+  title: string
+  description?: string | null
+  instructions?: string | null
+  servings?: number | null
+  prepTimeMinutes?: number | null
+  cookTimeMinutes?: number | null
+  sourceUrl?: string | null
+  imageUrl?: string | null
+  ingredients: CreateRecipeIngredientDto[]
+}
+

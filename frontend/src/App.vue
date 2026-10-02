@@ -3,11 +3,12 @@ import { onMounted, ref } from 'vue'
 import { useRecipeStore } from '@/stores/recipeStore'
 import { usePantryStore } from '@/stores/pantryStore'
 import { useShoppingListStore } from '@/stores/shoppingListStore'
-import type { Recipe, CreateRecipeDto, UpdateRecipeDto } from '@/types/recipe'
+import type { Recipe, CreateRecipeDto, UpdateRecipeDto, ImportedRecipeDto } from '@/types/recipe'
 import RecipeListView from '@/components/recipe/RecipeListView.vue'
 import CreateRecipeModal from '@/components/CreateRecipeModal.vue'
 import EditRecipeModal from '@/components/EditRecipeModal.vue'
 import RecipeDetailsModal from '@/components/RecipeDetailsModal.vue'
+import ImportRecipeModal from '@/components/recipe/ImportRecipeModal.vue'
 import PantryView from '@/components/pantry/PantryView.vue'
 import ShoppingListView from '@/components/shopping/ShoppingListView.vue'
 import MealPlannerView from '@/components/mealplan/MealPlannerView.vue'
@@ -21,6 +22,8 @@ const pantryStore = usePantryStore()
 const shoppingStore = useShoppingListStore()
 
 const isCreateModalOpen = ref(false)
+const isImportModalOpen = ref(false)
+const importedData = ref<ImportedRecipeDto | null>(null)
 const selectedRecipe = ref<Recipe | null>(null)
 const editingRecipe = ref<Recipe | null>(null)
 const isSubmitting = ref(false)
@@ -30,12 +33,33 @@ onMounted(() => {
   pantryStore.fetchPantry()
 })
 
+function handleOpenCreateModal() {
+  importedData.value = null
+  isCreateModalOpen.value = true
+}
+
+function handleOpenImportModal() {
+  isCreateModalOpen.value = false
+  isImportModalOpen.value = true
+}
+
+function handleRecipeImported(recipe: ImportedRecipeDto) {
+  isImportModalOpen.value = false
+  importedData.value = recipe
+  isCreateModalOpen.value = true
+}
+
+function handleCloseCreateModal() {
+  isCreateModalOpen.value = false
+  importedData.value = null
+}
+
 async function handleCreateRecipe(dto: CreateRecipeDto) {
   isSubmitting.value = true
   const created = await recipeStore.addRecipe(dto)
   isSubmitting.value = false
   if (created) {
-    isCreateModalOpen.value = false
+    handleCloseCreateModal()
   }
 }
 
@@ -87,7 +111,7 @@ async function handleSaveEditRecipe(dto: UpdateRecipeDto) {
           </div>
           <div>
             <h1 class="text-lg font-bold text-gray-900 leading-tight">Skafferiet</h1>
-            <p class="text-xs text-gray-500">Recept, skafferi och inköpslista</p>
+            <p class="text-xs text-gray-500 hidden sm:block">Recept, skafferi och inköpslista</p>
           </div>
         </div>
 
@@ -133,18 +157,29 @@ async function handleSaveEditRecipe(dto: UpdateRecipeDto) {
           </button>
         </nav>
 
-        <button
-          v-if="activeTab === 'recipes'"
-          type="button"
-          class="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white text-sm font-semibold px-4 py-2 rounded-xl shadow-xs transition-colors cursor-pointer"
-          @click="isCreateModalOpen = true"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-          </svg>
-          Nytt recept
-        </button>
-        <div v-else class="w-24 sm:w-auto"></div>
+        <div v-if="activeTab === 'recipes'" class="flex items-center gap-2">
+          <button
+            type="button"
+            class="inline-flex items-center gap-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs sm:text-sm font-semibold px-2.5 sm:px-3 py-2 rounded-xl transition-colors cursor-pointer shrink-0"
+            title="Importera recept"
+            @click="handleOpenImportModal"
+          >
+            <span>📥</span>
+            <span>Importera</span>
+          </button>
+          <button
+            type="button"
+            class="inline-flex items-center gap-1.5 sm:gap-2 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white text-xs sm:text-sm font-semibold px-2.5 sm:px-4 py-2 rounded-xl shadow-xs transition-colors cursor-pointer shrink-0"
+            title="Skapa nytt recept"
+            @click="handleOpenCreateModal"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+            </svg>
+            <span>Nytt recept</span>
+          </button>
+        </div>
+        <div v-else class="hidden sm:block w-24 sm:w-auto"></div>
       </div>
 
       <!-- Mobile Tab Bar -->
@@ -224,7 +259,8 @@ async function handleSaveEditRecipe(dto: UpdateRecipeDto) {
           @select="handleSelectRecipe"
           @edit="handleOpenEditRecipe"
           @delete="handleDeleteRecipe"
-          @create="isCreateModalOpen = true"
+          @create="handleOpenCreateModal"
+          @import="handleOpenImportModal"
         />
       </section>
 
@@ -247,9 +283,17 @@ async function handleSaveEditRecipe(dto: UpdateRecipeDto) {
     <!-- Modals -->
     <CreateRecipeModal
       v-if="isCreateModalOpen"
+      :initial-data="importedData"
       :submitting="isSubmitting"
-      @close="isCreateModalOpen = false"
+      @close="handleCloseCreateModal"
       @save="handleCreateRecipe"
+      @open-import="handleOpenImportModal"
+    />
+
+    <ImportRecipeModal
+      v-if="isImportModalOpen"
+      @close="isImportModalOpen = false"
+      @imported="handleRecipeImported"
     />
 
     <EditRecipeModal

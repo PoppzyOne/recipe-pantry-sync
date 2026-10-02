@@ -100,4 +100,16 @@ export const recipeApi = {
     })
     return handleResponse<import('@/types/recipe').RecipeIngredient[]>(response)
   },
+
+  async import(req: import('@/types/recipe').ImportRecipeRequestDto): Promise<import('@/types/recipe').ImportedRecipeDto> {
+    const response = await fetch(`${BASE_URL}/import`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+      },
+      body: JSON.stringify(req),
+    })
+    return handleResponse<import('@/types/recipe').ImportedRecipeDto>(response)
+  },
 }

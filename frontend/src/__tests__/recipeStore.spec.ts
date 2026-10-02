@@ -229,4 +229,49 @@ describe('recipeStore', () => {
     expect(store.filteredRecipes[0]?.title).toBe('Bovetegröt')
     expect(store.filteredRecipes[1]?.title).toBe('Ärtsoppa')
   })
+
+  it('imports a recipe successfully via URL', async () => {
+    const mockImported = {
+      title: 'Krämig Kycklingpasta',
+      description: 'God vardagsrätt',
+      instructions: '1. Koka pasta',
+      servings: 4,
+      prepTimeMinutes: 10,
+      cookTimeMinutes: 15,
+      sourceUrl: 'https://example.com/recept',
+      imageUrl: null,
+      ingredients: [
+        { name: 'Kycklingfilé', category: 'MEAT' as const, amount: 400, unit: 'g', notes: null },
+      ],
+    }
+
+    global.fetch = vi.fn<typeof fetch>().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => mockImported,
+    } as Response)
+
+    const store = useRecipeStore()
+    const result = await store.importRecipe({ url: 'https://example.com/recept' })
+
+    expect(result).toEqual(mockImported)
+    expect(store.loading).toBe(false)
+    expect(store.error).toBeNull()
+  })
+
+  it('handles recipe import error properly', async () => {
+    global.fetch = vi.fn<typeof fetch>().mockResolvedValue({
+      ok: false,
+      status: 400,
+      statusText: 'Bad Request',
+      json: async () => ({ message: 'Sidan saknar receptdata' }),
+    } as Response)
+
+    const store = useRecipeStore()
+    const result = await store.importRecipe({ url: 'https://example.com/not-a-recipe' })
+
+    expect(result).toBeNull()
+    expect(store.error).toBe('Sidan saknar receptdata')
+    expect(store.loading).toBe(false)
+  })
 })

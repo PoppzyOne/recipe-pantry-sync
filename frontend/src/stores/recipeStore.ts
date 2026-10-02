@@ -158,6 +158,20 @@ export const useRecipeStore = defineStore('recipes', () => {
     }
   }
 
+  async function importRecipe(req: import('@/types/recipe').ImportRecipeRequestDto): Promise<import('@/types/recipe').ImportedRecipeDto | null> {
+    loading.value = true
+    error.value = null
+    try {
+      const imported = await recipeApi.import(req)
+      return imported
+    } catch (err) {
+      error.value = err instanceof Error ? err.message : 'Kunde inte importera receptet'
+      return null
+    } finally {
+      loading.value = false
+    }
+  }
+
   function clearError() {
     error.value = null
   }
@@ -179,6 +193,7 @@ export const useRecipeStore = defineStore('recipes', () => {
     addRecipe,
     editRecipe,
     removeRecipe,
+    importRecipe,
     clearError,
   }
 })

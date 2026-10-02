@@ -14,9 +14,10 @@ describe('App', () => {
     } as Response)
   })
 
-  it('renders the header title and new recipe button', () => {
+  it('renders the header title, import button and new recipe button', () => {
     const wrapper = mount(App)
     expect(wrapper.text()).toContain('Skafferiet')
+    expect(wrapper.text()).toContain('Importera')
     expect(wrapper.text()).toContain('Nytt recept')
   })
 })

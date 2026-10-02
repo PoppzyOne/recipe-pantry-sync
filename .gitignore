@@ -3,6 +3,8 @@
 *.log
 .env
 .env.*.local
+.deploy.env
+scripts/.deploy.env
 
 # IDEs
 .idea/

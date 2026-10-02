@@ -1,15 +1,17 @@
 <script setup lang="ts">
-import { reactive, ref } from 'vue'
-import type { CreateRecipeDto, CreateRecipeIngredientDto } from '@/types/recipe'
+import { reactive, ref, watch } from 'vue'
+import type { CreateRecipeDto, CreateRecipeIngredientDto, ImportedRecipeDto } from '@/types/recipe'
 import { MEASUREMENT_UNITS, CATEGORY_LABELS, INGREDIENT_CATEGORIES } from '@/types/recipe'
+
+const props = defineProps<{
+  submitting?: boolean
+  initialData?: ImportedRecipeDto | Partial<CreateRecipeDto> | null
+}>()
 
 const emit = defineEmits<{
   (e: 'close'): void
   (e: 'save', dto: CreateRecipeDto): void
-}>()
-
-defineProps<{
-  submitting?: boolean
+  (e: 'openImport'): void
 }>()
 
 const form = reactive<{
@@ -29,6 +31,22 @@ const form = reactive<{
   cookTimeMinutes: 20,
   ingredients: [],
 })
+
+watch(
+  () => props.initialData,
+  (val) => {
+    if (val) {
+      form.title = val.title || ''
+      form.description = val.description || ''
+      form.instructions = val.instructions || ''
+      form.servings = val.servings ?? 4
+      form.prepTimeMinutes = val.prepTimeMinutes ?? 15
+      form.cookTimeMinutes = val.cookTimeMinutes ?? 20
+      form.ingredients = val.ingredients ? val.ingredients.map((i) => ({ ...i })) : []
+    }
+  },
+  { immediate: true }
+)
 
 // Temp state for adding a new ingredient row
 const newIng = reactive<CreateRecipeIngredientDto>({
@@ -97,18 +115,46 @@ function handleSubmit() {
       <!-- Modal Header -->
       <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between shrink-0">
         <div>
-          <h2 class="text-xl font-bold text-gray-900">Skapa nytt recept</h2>
-          <p class="text-xs text-gray-500">Fyll i receptdetaljer och ingredienser för skafferisynk</p>
+          <div class="flex items-center gap-2">
+            <h2 class="text-xl font-bold text-gray-900">
+              {{ props.initialData ? 'Granska importerat recept' : 'Skapa nytt recept' }}
+            </h2>
+            <span
+              v-if="props.initialData"
+              class="text-xs font-semibold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200"
+            >
+              📥 Importerat
+            </span>
+          </div>
+          <p class="text-xs text-gray-500">
+            {{
+              props.initialData
+                ? 'Kontrollera ingredienser och tillagningstid innan du sparar'
+                : 'Fyll i receptdetaljer och ingredienser för skafferisynk'
+            }}
+          </p>
         </div>
-        <button
-          type="button"
-          class="text-gray-400 hover:text-gray-600 p-1.5 rounded-lg hover:bg-gray-100 transition-colors"
-          @click="emit('close')"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
+        <div class="flex items-center gap-2">
+          <button
+            v-if="!props.initialData"
+            type="button"
+            @click="emit('openImport')"
+            class="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-700 hover:text-emerald-800 px-2.5 sm:px-3 py-1.5 rounded-lg border border-emerald-200 bg-emerald-50/60 hover:bg-emerald-100/60 transition-colors cursor-pointer shrink-0"
+          >
+            <span>📥</span>
+            <span class="hidden sm:inline">Importera från länk</span>
+            <span class="sm:hidden">Importera</span>
+          </button>
+          <button
+            type="button"
+            class="text-gray-400 hover:text-gray-600 p-1.5 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
+            @click="emit('close')"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
       </div>
 
       <!-- Scrollable Form Body -->
