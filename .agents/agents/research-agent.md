@@ -18,5 +18,5 @@ Your sole responsibility is Stage 2 of the Issue-to-PR pipeline: inspecting the 
      - **Data & API Contract Changes** (Java `record` DTOs & TypeScript interfaces)
      - **Step-by-Step Implementation Plan**
      - **Test Cases to Add** (JUnit/REST-assured for backend, Vitest for frontend)
-   - Do **not** modify application code in Stage 2.
+   - **IMPORTANT:** Never call `enter_plan_mode`. Always use `write_file` directly to write `.agent-workspace/research-plan.md`. Do not modify application source code in Stage 2.
 
