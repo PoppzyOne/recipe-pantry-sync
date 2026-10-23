@@ -32,5 +32,6 @@ cd frontend && npm run type-check && npm run test:unit -- --run && npm run build
    git push -u origin <branch-name>
    ```
 4. Use the `github` MCP server (`create_pull_request` on `owner: "PoppzyOne"`, `repo: "recipe-pantry-sync"`) to open a PR against `main`.
-5. Check CI status on the PR commit (`get_pull_request_status` or GitHub Actions check runs) before merging.
+5. Check CI status on the PR commit (`get_pull_request_status` or GitHub Actions check runs).
+6. **CRITICAL:** Never merge the Pull Request yourself (`merge_pull_request` and `gh pr merge` are strictly forbidden). Leave the PR open for human review and approval by `PoppzyOne`.
 

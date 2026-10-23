@@ -30,3 +30,7 @@ The application must be lightweight, fast, and implement an "offline-first" arch
 - Only output the exact code snippets that need to be changed or added. Do not print entire files unless explicitly requested.
 - If introducing a new concept or library (e.g., a specific Pinia plugin for persistence), briefly explain why it is the best choice.
 - Ensure that TypeScript interfaces and Java DTO structures match perfectly across the stack.
+
+## Git & Pull Request Guardrails
+- **Never Merge Pull Requests:** AI agents are strictly forbidden from merging Pull Requests into `main` (never call `merge_pull_request`, `gh pr merge`, or push feature/bugfix changes directly to `main`).
+- **Human-in-the-Loop Approval:** All issue implementations must be pushed to a dedicated branch (`feat/issue-<number>-...` or `fix/issue-<number>-...`) and submitted as a Pull Request linked to the issue (`Closes #<number>`) for final review and merge by the repository owner (`PoppzyOne`).

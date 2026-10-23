@@ -27,3 +27,6 @@ frontend/coverage/
 frontend/*.tsbuildinfo
 frontend/.eslintcache
 frontend/__screenshots__/
+
+# Agent pipeline temporary artifacts
+.agent-workspace/

@@ -1,0 +1,219 @@
+name: AI Issue-to-PR Pipeline (4-Agent Workflow)
+
+on:
+  issues:
+    types: [labeled]
+  workflow_dispatch:
+    inputs:
+      issue_number:
+        description: 'GitHub Issue number to process through the 4-agent pipeline'
+        required: true
+        type: number
+
+concurrency:
+  group: ai-issue-to-pr-${{ github.event.issue.number || inputs.issue_number }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+jobs:
+  issue-to-pr:
+    name: 4-Stage Agent Pipeline (Triage -> Research -> Code -> Review -> PR)
+    runs-on: ubuntu-latest
+    # Only run when 'ai-ready' label is applied by the repo owner, or via manual workflow_dispatch by owner
+    if: >
+      github.actor == 'PoppzyOne' &&
+      (
+        github.event_name == 'workflow_dispatch' ||
+        (github.event_name == 'issues' && github.event.label.name == 'ai-ready')
+      )
+    env:
+      ISSUE_NUMBER: ${{ github.event.issue.number || inputs.issue_number }}
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      GITHUB_PERSONAL_ACCESS_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up JDK 21 (for Backend Quarkus & Maven tests)
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Set up Node.js 22 (for Frontend Vue/Vite & Gemini CLI)
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install Frontend Dependencies & Gemini CLI
+        run: |
+          npm --prefix frontend ci
+          npm install -g @google/gemini-cli
+
+      - name: Configure Workspace MCP Servers for Agent Pipeline
+        run: |
+          mkdir -p ~/.gemini/config .agent-workspace
+          envsubst < .agents/mcp_config.json > ~/.gemini/config/mcp_config.json
+          cp .agents/mcp_config.json ~/.gemini/settings.json
+
+      - name: Fetch Issue Details & Existing Issues
+        run: |
+          gh issue view "$ISSUE_NUMBER" -R "$GITHUB_REPOSITORY" --json number,title,body,labels,comments > .agent-workspace/issue.json
+          gh issue list -R "$GITHUB_REPOSITORY" --state all --limit 50 --json number,title,state,labels > .agent-workspace/existing-issues.json
+
+      # =========================================================================
+      # STAGE 1: Triage Agent
+      # =========================================================================
+      - name: "1. Triage-agent (Klassificering, dubblettkontroll & validering)"
+        run: |
+          gemini --yolo -p "
+          Read AGENTS.md and .agents/agents/triage-agent.md.
+          Analyze the target GitHub issue in .agent-workspace/issue.json and compare against .agent-workspace/existing-issues.json.
+          Write the JSON result strictly matching the schema to .agent-workspace/triage.json.
+          Do not modify any source code files.
+          "
+          cat .agent-workspace/triage.json
+
+      - name: Post Triage Status & Gate Pipeline
+        id: triage_gate
+        run: |
+          ACTIONABLE=$(python3 -c "import json; d=json.load(open('.agent-workspace/triage.json')); print(str(d.get('actionable', False)).lower())")
+          SUMMARY_SV=$(python3 -c "import json; d=json.load(open('.agent-workspace/triage.json')); print(d.get('summarySv', ''))")
+          CLASSIFICATION=$(python3 -c "import json; d=json.load(open('.agent-workspace/triage.json')); print(d.get('classification', 'feature'))")
+          BRANCH_PREFIX=$(python3 -c "import json; d=json.load(open('.agent-workspace/triage.json')); print(d.get('branchPrefix', 'feat'))")
+          SLUG=$(python3 -c "import json; d=json.load(open('.agent-workspace/triage.json')); print(d.get('slug', 'update'))")
+
+          echo "actionable=$ACTIONABLE" >> "$GITHUB_OUTPUT"
+          echo "branch_name=${BRANCH_PREFIX}/issue-${ISSUE_NUMBER}-${SLUG}" >> "$GITHUB_OUTPUT"
+          echo "classification=$CLASSIFICATION" >> "$GITHUB_OUTPUT"
+
+          if [ "$ACTIONABLE" != "true" ]; then
+            MISSING=$(python3 -c "import json; d=json.load(open('.agent-workspace/triage.json')); print('\n'.join('- ' + m for m in d.get('missingInfo', [])))")
+            gh issue comment "$ISSUE_NUMBER" -R "$GITHUB_REPOSITORY" --body "### 🤖 1. Triage-agent: Mer information krävs / Ej åtgärdbar
+          **Klassificering:** \`$CLASSIFICATION\`
+          **Bedömning:** $SUMMARY_SV
+
+          $MISSING
+
+          *Flödet har pausats. Uppdatera issuet och lägg på labeln \`ai-ready\` igen när det är redo.*"
+            exit 0
+          else
+            gh issue comment "$ISSUE_NUMBER" -R "$GITHUB_REPOSITORY" --body "### 🤖 1. Triage-agent: Godkänd för implementering
+          - **Klassificering:** \`$CLASSIFICATION\`
+          - **Planerad branch:** \`${BRANCH_PREFIX}/issue-${ISSUE_NUMBER}-${SLUG}\`
+          - **Sammanfattning:** $SUMMARY_SV
+
+          *Startar steg 2 (Forsknings-/Lokaliseringsagent)...*"
+          fi
+
+      # =========================================================================
+      # STAGE 2: Research / Localization Agent
+      # =========================================================================
+      - name: "2. Forsknings-/Lokaliseringsagent (Kartlägg berörda filer via källkod & MCP)"
+        if: steps.triage_gate.outputs.actionable == 'true'
+        run: |
+          gemini --yolo -p "
+          Read AGENTS.md, .agents/agents/research-agent.md, .agent-workspace/issue.json, and .agent-workspace/triage.json.
+          Also consult relevant skills in .agents/skills/ (fullstack-feature, offline-sync-audit).
+          Search backend/ and frontend/ to locate all affected files, DTOs, entities, services, resources, Pinia stores, and tests.
+          Write a comprehensive implementation plan to .agent-workspace/research-plan.md.
+          Do not modify application source code in this stage.
+          "
+          cat .agent-workspace/research-plan.md
+
+      # =========================================================================
+      # STAGE 3: Coder Agent
+      # =========================================================================
+      - name: "3. Kodar-agent (Skapa branch, implementera ändring & skriv tester)"
+        if: steps.triage_gate.outputs.actionable == 'true'
+        run: |
+          BRANCH_NAME="${{ steps.triage_gate.outputs.branch_name }}"
+          git checkout -B "$BRANCH_NAME"
+
+          gemini --yolo -p "
+          Read AGENTS.md, .agents/agents/coder-agent.md, .agent-workspace/issue.json, and .agent-workspace/research-plan.md.
+          Implement all required changes in backend/ and/or frontend/ strictly following the architecture rules in AGENTS.md and .agents/skills/.
+          Write or update JUnit/REST-assured integration tests in backend/src/test/ and Vitest unit tests in frontend/src/__tests__/.
+          "
+
+      # =========================================================================
+      # STAGE 4: Review & Test Agent
+      # =========================================================================
+      - name: "4. Gransknings-/Testagent (Kör testsvit, validera kodkvalitet & skapa PR-underlag)"
+        if: steps.triage_gate.outputs.actionable == 'true'
+        run: |
+          chmod +x backend/mvnw
+          gemini --yolo -p "
+          Read AGENTS.md, .agents/agents/review-test-agent.md, .agent-workspace/issue.json, and .agent-workspace/research-plan.md.
+          1. Run backend tests: cd backend && ./mvnw test --batch-mode
+          2. Run frontend checks: cd frontend && npm run type-check && npx vitest run && npm run build
+          3. If any test, type-check, or build fails, fix the code and re-run until all checks pass.
+          4. Audit git diff against AGENTS.md rules (Java record DTOs, no exposed JPA entities, 1:1 TypeScript parity, English code/comments).
+          5. Write the Pull Request description in Swedish to .agent-workspace/pr-body.md including 'Closes #${ISSUE_NUMBER}'.
+          "
+
+          # Hard verification gate before PR creation: ensure test suites & build are 100% green
+          (cd backend && ./mvnw test --batch-mode)
+          (cd frontend && npm run type-check && npx vitest run && npm run build)
+
+      # =========================================================================
+      # FINAL STEP: Open Pull Request for Human Review (NEVER Auto-Merge)
+      # =========================================================================
+      - name: "Skapa Pull Request länkad till issuet (Endast PoppzyOne får merga)"
+        if: steps.triage_gate.outputs.actionable == 'true'
+        run: |
+          BRANCH_NAME="${{ steps.triage_gate.outputs.branch_name }}"
+          ISSUE_TITLE=$(python3 -c "import json; d=json.load(open('.agent-workspace/issue.json')); print(d.get('title', 'Update'))")
+          CLASSIFICATION="${{ steps.triage_gate.outputs.classification }}"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add -A
+          git reset -- .agent-workspace/ || true
+
+          if git diff --cached --quiet; then
+            gh issue comment "$ISSUE_NUMBER" -R "$GITHUB_REPOSITORY" --body "⚠️ Agentflödet kördes klart men genererade inga filändringar att committa."
+            exit 1
+          fi
+
+          COMMIT_PREFIX="feat"
+          if [ "$CLASSIFICATION" = "bug" ]; then
+            COMMIT_PREFIX="fix"
+          fi
+
+          git commit -m "${COMMIT_PREFIX}: ${ISSUE_TITLE} (#${ISSUE_NUMBER})"
+          git push -u origin "$BRANCH_NAME" --force-with-lease
+
+          # Ensure PR body always contains Closes #<issue_number> and no-auto-merge notice
+          cat <<EOF >> .agent-workspace/pr-body.md
+
+          ---
+          > 🔒 **Säkerhetsregel:** Denna Pull Request har skapats automatiskt av 4-stegs agentflödet för #${ISSUE_NUMBER}. Ingen agent har behörighet att merga till \`main\` — slutgodkännande och merge utförs enbart av @PoppzyOne.
+          EOF
+
+          PR_URL=$(gh pr create \
+            -R "$GITHUB_REPOSITORY" \
+            --base main \
+            --head "$BRANCH_NAME" \
+            --title "${COMMIT_PREFIX}: ${ISSUE_TITLE} (#${ISSUE_NUMBER})" \
+            --body-file .agent-workspace/pr-body.md \
+            --reviewer PoppzyOne)
+
+          gh issue comment "$ISSUE_NUMBER" -R "$GITHUB_REPOSITORY" --body "### ✅ Pull Request skapad för slutgodkännande
+          Alla 4 agentsteg (Triage $\rightarrow$ Forskning $\rightarrow$ Kodning $\rightarrow$ Granskning/Test) är genomförda och samtliga tester är gröna.
+
+          🔗 **Pull Request:** $PR_URL
+          👤 **Väntar på granskning och merge av:** @PoppzyOne"
+
