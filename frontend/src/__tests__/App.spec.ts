@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
+import { createRouter, createWebHistory } from 'vue-router'
 import App from '../App.vue'
 
 describe('App', () => {
@@ -14,8 +15,23 @@ describe('App', () => {
     } as Response)
   })
 
-  it('renders the header title, import button and new recipe button', () => {
-    const wrapper = mount(App)
+  it('renders the header title, import button and new recipe button', async () => {
+    const router = createRouter({
+      history: createWebHistory(),
+      routes: [
+        { path: '/', redirect: '/recipes' },
+        { path: '/recipes', name: 'recipes', component: { template: '<div>Recipes</div>' } },
+      ],
+    })
+    router.push('/recipes')
+    await router.isReady()
+    
+    const wrapper = mount(App, {
+      global: {
+        plugins: [router]
+      }
+    })
+    
     expect(wrapper.text()).toContain('Skafferiet')
     expect(wrapper.text()).toContain('Importera')
     expect(wrapper.text()).toContain('Nytt recept')
