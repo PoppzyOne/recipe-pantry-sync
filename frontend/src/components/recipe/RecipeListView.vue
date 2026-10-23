@@ -1,17 +1,21 @@
 <script setup lang="ts">
+import { inject } from 'vue'
 import { useRecipeStore, type RecipeSortOption } from '@/stores/recipeStore'
 import type { Recipe } from '@/types/recipe'
 import RecipeCard from '../RecipeCard.vue'
 
 const recipeStore = useRecipeStore()
+const recipeActions = inject<{
+  handleOpenCreateModal: () => void
+  handleOpenImportModal: () => void
+  handleSelectRecipe: (recipe: Recipe) => void
+  handleOpenEditRecipe: (recipe: Recipe) => void
+  handleDeleteRecipe: (id: number) => void
+}>('recipeActions')
 
-const emit = defineEmits<{
-  (e: 'select', recipe: Recipe): void
-  (e: 'edit', recipe: Recipe): void
-  (e: 'delete', id: number): void
-  (e: 'create'): void
-  (e: 'import'): void
-}>()
+if (!recipeActions) {
+  throw new Error('recipeActions not provided')
+}
 
 const timeFilterOptions: { label: string; value: number | 'ALL' }[] = [
   { label: 'Alla tider', value: 'ALL' },
@@ -143,14 +147,14 @@ const sortOptions: { label: string; value: RecipeSortOption }[] = [
         <button
           type="button"
           class="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold px-4 py-2.5 rounded-xl shadow-xs transition-colors cursor-pointer"
-          @click="emit('create')"
+          @click="recipeActions.handleOpenCreateModal()"
         >
           <span>+</span> Skapa recept
         </button>
         <button
           type="button"
           class="inline-flex items-center gap-2 bg-white hover:bg-gray-50 text-gray-700 text-sm font-semibold px-4 py-2.5 rounded-xl border border-gray-200 transition-colors cursor-pointer"
-          @click="emit('import')"
+          @click="recipeActions.handleOpenImportModal()"
         >
           <span>📥</span> Importera recept
         </button>
@@ -182,9 +186,9 @@ const sortOptions: { label: string; value: RecipeSortOption }[] = [
         v-for="recipe in recipeStore.filteredRecipes"
         :key="recipe.id"
         :recipe="recipe"
-        @select="emit('select', recipe)"
-        @edit="emit('edit', recipe)"
-        @delete="emit('delete', recipe.id)"
+        @select="recipeActions.handleSelectRecipe(recipe)"
+        @edit="recipeActions.handleOpenEditRecipe(recipe)"
+        @delete="recipeActions.handleDeleteRecipe(recipe.id)"
       />
     </div>
   </div>

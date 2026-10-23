@@ -1,21 +1,14 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
+import { RouterLink, RouterView } from 'vue-router'
 import { useRecipeStore } from '@/stores/recipeStore'
 import { usePantryStore } from '@/stores/pantryStore'
 import { useShoppingListStore } from '@/stores/shoppingListStore'
 import type { Recipe, CreateRecipeDto, UpdateRecipeDto, ImportedRecipeDto } from '@/types/recipe'
-import RecipeListView from '@/components/recipe/RecipeListView.vue'
 import CreateRecipeModal from '@/components/CreateRecipeModal.vue'
 import EditRecipeModal from '@/components/EditRecipeModal.vue'
 import RecipeDetailsModal from '@/components/RecipeDetailsModal.vue'
 import ImportRecipeModal from '@/components/recipe/ImportRecipeModal.vue'
-import PantryView from '@/components/pantry/PantryView.vue'
-import ShoppingListView from '@/components/shopping/ShoppingListView.vue'
-import MealPlannerView from '@/components/mealplan/MealPlannerView.vue'
-
-type ActiveTab = 'recipes' | 'planner' | 'pantry' | 'shopping'
-
-const activeTab = ref<ActiveTab>('recipes')
 
 const recipeStore = useRecipeStore()
 const pantryStore = usePantryStore()
@@ -77,13 +70,6 @@ function handleSelectRecipe(recipe: Recipe) {
   selectedRecipe.value = recipe
 }
 
-function handleViewRecipeFromPlanner(recipeId: number) {
-  const found = recipeStore.recipes.find((r) => r.id === recipeId)
-  if (found) {
-    selectedRecipe.value = found
-  }
-}
-
 function handleOpenEditRecipe(recipe: Recipe) {
   selectedRecipe.value = null
   editingRecipe.value = recipe
@@ -98,6 +84,18 @@ async function handleSaveEditRecipe(dto: UpdateRecipeDto) {
     editingRecipe.value = null
   }
 }
+
+// Expose handlers to child components via provide/inject if needed, 
+// or simply pass them as props if we rework views.
+// For now, let's keep it simple by providing them.
+import { provide } from 'vue'
+provide('recipeActions', {
+  handleOpenCreateModal,
+  handleOpenImportModal,
+  handleSelectRecipe,
+  handleOpenEditRecipe,
+  handleDeleteRecipe
+})
 </script>
 
 <template>
@@ -117,35 +115,35 @@ async function handleSaveEditRecipe(dto: UpdateRecipeDto) {
 
         <!-- Tab navigation -->
         <nav class="hidden sm:flex items-center gap-1 bg-gray-100 p-1 rounded-xl text-xs font-semibold">
-          <button
-            type="button"
+          <RouterLink
+            to="/recipes"
             class="px-3.5 py-1.5 rounded-lg transition-colors cursor-pointer flex items-center gap-1.5"
-            :class="activeTab === 'recipes' ? 'bg-white shadow-2xs text-gray-900' : 'text-gray-600 hover:text-gray-900'"
-            @click="activeTab = 'recipes'"
+            active-class="bg-white shadow-2xs text-gray-900"
+            inactive-class="text-gray-600 hover:text-gray-900"
           >
             <span>🍳</span> Recept
-          </button>
-          <button
-            type="button"
+          </RouterLink>
+          <RouterLink
+            to="/planner"
             class="px-3.5 py-1.5 rounded-lg transition-colors cursor-pointer flex items-center gap-1.5"
-            :class="activeTab === 'planner' ? 'bg-white shadow-2xs text-gray-900' : 'text-gray-600 hover:text-gray-900'"
-            @click="activeTab = 'planner'"
+            active-class="bg-white shadow-2xs text-gray-900"
+            inactive-class="text-gray-600 hover:text-gray-900"
           >
             <span>📅</span> Veckoplan
-          </button>
-          <button
-            type="button"
+          </RouterLink>
+          <RouterLink
+            to="/pantry"
             class="px-3.5 py-1.5 rounded-lg transition-colors cursor-pointer flex items-center gap-1.5"
-            :class="activeTab === 'pantry' ? 'bg-white shadow-2xs text-gray-900' : 'text-gray-600 hover:text-gray-900'"
-            @click="activeTab = 'pantry'"
+            active-class="bg-white shadow-2xs text-gray-900"
+            inactive-class="text-gray-600 hover:text-gray-900"
           >
             <span>🥫</span> Skafferi
-          </button>
-          <button
-            type="button"
+          </RouterLink>
+          <RouterLink
+            to="/shopping"
             class="px-3.5 py-1.5 rounded-lg transition-colors cursor-pointer flex items-center gap-1.5 relative"
-            :class="activeTab === 'shopping' ? 'bg-white shadow-2xs text-gray-900' : 'text-gray-600 hover:text-gray-900'"
-            @click="activeTab = 'shopping'"
+            active-class="bg-white shadow-2xs text-gray-900"
+            inactive-class="text-gray-600 hover:text-gray-900"
           >
             <span>🛒</span> Inköpslista
             <span
@@ -154,20 +152,22 @@ async function handleSaveEditRecipe(dto: UpdateRecipeDto) {
             >
               {{ shoppingStore.remainingCount }}
             </span>
-          </button>
+          </RouterLink>
         </nav>
 
-        <div v-if="activeTab === 'recipes'" class="flex items-center gap-2">
+        <div class="flex items-center gap-2">
           <button
+            v-if="$route.name === 'recipes'"
             type="button"
             class="inline-flex items-center gap-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs sm:text-sm font-semibold px-2.5 sm:px-3 py-2 rounded-xl transition-colors cursor-pointer shrink-0"
             title="Importera recept"
             @click="handleOpenImportModal"
           >
             <span>📥</span>
-            <span>Importera</span>
+            <span class="hidden sm:inline">Importera</span>
           </button>
           <button
+            v-if="$route.name === 'recipes'"
             type="button"
             class="inline-flex items-center gap-1.5 sm:gap-2 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white text-xs sm:text-sm font-semibold px-2.5 sm:px-4 py-2 rounded-xl shadow-xs transition-colors cursor-pointer shrink-0"
             title="Skapa nytt recept"
@@ -176,46 +176,9 @@ async function handleSaveEditRecipe(dto: UpdateRecipeDto) {
             <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
             </svg>
-            <span>Nytt recept</span>
+            <span class="hidden sm:inline">Nytt recept</span>
           </button>
         </div>
-        <div v-else class="hidden sm:block w-24 sm:w-auto"></div>
-      </div>
-
-      <!-- Mobile Tab Bar -->
-      <div class="sm:hidden flex border-t border-gray-100 bg-gray-50/50 px-2 py-1 justify-around text-xs font-semibold">
-        <button
-          type="button"
-          class="px-2 py-1.5 rounded-lg transition-colors"
-          :class="activeTab === 'recipes' ? 'bg-white text-emerald-700 shadow-2xs' : 'text-gray-500'"
-          @click="activeTab = 'recipes'"
-        >
-          🍳 Recept
-        </button>
-        <button
-          type="button"
-          class="px-2 py-1.5 rounded-lg transition-colors"
-          :class="activeTab === 'planner' ? 'bg-white text-emerald-700 shadow-2xs' : 'text-gray-500'"
-          @click="activeTab = 'planner'"
-        >
-          📅 Vecka
-        </button>
-        <button
-          type="button"
-          class="px-2 py-1.5 rounded-lg transition-colors"
-          :class="activeTab === 'pantry' ? 'bg-white text-emerald-700 shadow-2xs' : 'text-gray-500'"
-          @click="activeTab = 'pantry'"
-        >
-          🥫 Skafferi
-        </button>
-        <button
-          type="button"
-          class="px-2 py-1.5 rounded-lg transition-colors relative"
-          :class="activeTab === 'shopping' ? 'bg-white text-emerald-700 shadow-2xs' : 'text-gray-500'"
-          @click="activeTab = 'shopping'"
-        >
-          🛒 Inköp ({{ shoppingStore.remainingCount }})
-        </button>
       </div>
     </header>
 
@@ -253,31 +216,7 @@ async function handleSaveEditRecipe(dto: UpdateRecipeDto) {
         </div>
       </div>
 
-      <!-- Tab 1: Recept -->
-      <section v-if="activeTab === 'recipes'">
-        <RecipeListView
-          @select="handleSelectRecipe"
-          @edit="handleOpenEditRecipe"
-          @delete="handleDeleteRecipe"
-          @create="handleOpenCreateModal"
-          @import="handleOpenImportModal"
-        />
-      </section>
-
-      <!-- Tab 2: Veckoplanering -->
-      <section v-else-if="activeTab === 'planner'">
-        <MealPlannerView @view-recipe="handleViewRecipeFromPlanner" />
-      </section>
-
-      <!-- Tab 3: Skafferi -->
-      <section v-else-if="activeTab === 'pantry'">
-        <PantryView />
-      </section>
-
-      <!-- Tab 4: Inköpslista (Offline-first) -->
-      <section v-else-if="activeTab === 'shopping'">
-        <ShoppingListView />
-      </section>
+      <RouterView />
     </main>
 
     <!-- Modals -->
