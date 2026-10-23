@@ -84,12 +84,13 @@ jobs:
           chosen = candidates[0] if candidates else "gemini-3-flash-preview"
           for m in candidates:
               test_url = f"https://generativelanguage.googleapis.com/v1beta/models/{m}:generateContent?key={key}"
-              req = urllib.request.Request(test_url, data=b"{\"contents\":[{\"parts\":[{\"text\":\"ok\"}]}]}", headers={"Content-Type": "application/json"})
+              payload = b"{\"contents\":[{\"parts\":[{\"text\":\"ok\"}]}],\"generationConfig\":{\"maxOutputTokens\":1}}"
+              req = urllib.request.Request(test_url, data=payload, headers={"Content-Type": "application/json"})
               try:
-                  urllib.request.urlopen(req, timeout=10)
+                  urllib.request.urlopen(req, timeout=8)
                   chosen = m
                   break
-              except urllib.error.HTTPError:
+              except Exception:
                   continue
           print(chosen)
           EOF
