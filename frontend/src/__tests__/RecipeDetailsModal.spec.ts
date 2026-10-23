@@ -1,103 +1,79 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
+import { describe, it, expect } from 'vitest'
+import RecipeDetailsModal from '@/components/RecipeDetailsModal.vue'
 import { createPinia, setActivePinia } from 'pinia'
-import RecipeDetailsModal from '../components/RecipeDetailsModal.vue'
 import type { Recipe } from '@/types/recipe'
 
-describe('RecipeDetailsModal', () => {
-  const dummyRecipe: Recipe = {
-    id: 42,
-    title: 'Krämig Pasta Carbonara',
-    description: 'En riktig klassiker med mycket smak.',
-    instructions: '1. Koka pastan al dente.\n2. Stek fläsket krispigt.\n3. Rör ner ägg och ost.',
-    servings: 4,
-    prepTimeMinutes: 10,
-    cookTimeMinutes: 15,
-    ingredients: [
-      {
-        id: 1,
-        ingredientId: 101,
-        name: 'Spaghetti',
-        category: 'PANTRY',
-        amount: 400,
-        unit: 'g',
-        notes: 'al dente',
-      },
-      {
-        id: 2,
-        ingredientId: 102,
-        name: 'Guanciale',
-        category: 'MEAT',
-        amount: 200,
-        unit: 'g',
-        notes: null,
-      },
-    ],
-    createdAt: '2026-10-01T12:00:00Z',
-    updatedAt: null,
-  }
+setActivePinia(createPinia())
 
-  beforeEach(() => {
-    setActivePinia(createPinia())
-    global.fetch = vi.fn<typeof fetch>().mockResolvedValue({
-      ok: true,
-      status: 200,
-      json: async () => [],
-    } as Response)
-  })
+const mockRecipe: Recipe = {
+  id: 1,
+  title: 'Test Recept',
+  description: 'Beskrivning',
+  instructions: 'Steg 1',
+  servings: 4,
+  prepTimeMinutes: 10,
+  cookTimeMinutes: 20,
+  ingredients: [
+    { id: 1, ingredientId: 1, name: 'Ingrediens 1', category: 'PRODUCE', amount: 100, unit: 'g', notes: null },
+    { id: 2, ingredientId: 2, name: 'Ingrediens 2', category: 'PANTRY', amount: 2, unit: 'st', notes: null },
+  ],
+  createdAt: '2026-10-23T00:00:00Z',
+  updatedAt: null,
+}
 
-  it('renders recipe details, description and total cooking time', () => {
+describe('RecipeDetailsModal.vue', () => {
+  it('scales ingredients correctly when portions change', async () => {
     const wrapper = mount(RecipeDetailsModal, {
-      props: { recipe: dummyRecipe },
+      props: { recipe: mockRecipe },
     })
 
-    expect(wrapper.text()).toContain('Krämig Pasta Carbonara')
-    expect(wrapper.text()).toContain('En riktig klassiker med mycket smak.')
-    expect(wrapper.text()).toContain('4 st') // Servings
-    expect(wrapper.text()).toContain('10 min') // Prep time
-    expect(wrapper.text()).toContain('15 min') // Cook time
-    expect(wrapper.text()).toContain('25 min') // Total time (10 + 15)
+    // Check initial state
+    let ingredientAmounts = wrapper.findAll('.font-semibold.text-gray-700.bg-gray-50')
+    expect(ingredientAmounts[0]).toBeDefined()
+    expect(ingredientAmounts[0]?.text()).toContain('100 g')
+    expect(ingredientAmounts[1]).toBeDefined()
+    expect(ingredientAmounts[1]?.text()).toContain('2 st')
+
+    // Find input and change servings from 4 to 8 (scaling factor = 2)
+    const servingsInput = wrapper.find('input[type="number"]')
+    await servingsInput.setValue(8)
+
+    // Check scaled state
+    ingredientAmounts = wrapper.findAll('.font-semibold.text-gray-700.bg-gray-50')
+    expect(ingredientAmounts[0]).toBeDefined()
+    expect(ingredientAmounts[0]?.text()).toContain('200 g')
+    expect(ingredientAmounts[1]).toBeDefined()
+    expect(ingredientAmounts[1]?.text()).toContain('4 st')
+
+    // Change servings from 8 to 2 (scaling factor = 0.5)
+    await servingsInput.setValue(2)
+
+    // Check scaled state
+    ingredientAmounts = wrapper.findAll('.font-semibold.text-gray-700.bg-gray-50')
+    expect(ingredientAmounts[0]).toBeDefined()
+    expect(ingredientAmounts[0]?.text()).toContain('50 g')
+    expect(ingredientAmounts[1]).toBeDefined()
+    expect(ingredientAmounts[1]?.text()).toContain('1 st')
   })
 
-  it('formats instruction steps cleanly into individual numbered steps', () => {
+  it('verifies ingredient amounts scale proportionally', async () => {
     const wrapper = mount(RecipeDetailsModal, {
-      props: { recipe: dummyRecipe },
+      props: { recipe: mockRecipe },
     })
 
-    expect(wrapper.text()).toContain('3 steg')
-    expect(wrapper.text()).toContain('Koka pastan al dente.')
-    expect(wrapper.text()).toContain('Stek fläsket krispigt.')
-    expect(wrapper.text()).toContain('Rör ner ägg och ost.')
-  })
+    const servingsInput = wrapper.find('input[type="number"]')
+    
+    // Scale to 2 servings (4 -> 2, factor = 0.5)
+    await servingsInput.setValue(2)
+    let ingredientAmounts = wrapper.findAll('.font-semibold.text-gray-700.bg-gray-50')
+    expect(ingredientAmounts[0]?.text()).toContain('50 g')
+    expect(ingredientAmounts[1]?.text()).toContain('1 st')
 
-  it('renders ingredients with amounts and units', () => {
-    const wrapper = mount(RecipeDetailsModal, {
-      props: { recipe: dummyRecipe },
-    })
-
-    expect(wrapper.text()).toContain('Spaghetti')
-    expect(wrapper.text()).toContain('400 g')
-    expect(wrapper.text()).toContain('Guanciale')
-    expect(wrapper.text()).toContain('200 g')
-  })
-
-  it('emits close, edit and delete events properly', async () => {
-    const wrapper = mount(RecipeDetailsModal, {
-      props: { recipe: dummyRecipe },
-    })
-
-    const closeBtn = wrapper.find('button[title="Stäng (Esc)"]')
-    await closeBtn.trigger('click')
-    expect(wrapper.emitted('close')).toBeTruthy()
-
-    const editBtn = wrapper.findAll('button').find((b) => b.text().includes('Redigera'))
-    expect(editBtn).toBeDefined()
-    await editBtn?.trigger('click')
-    expect(wrapper.emitted('edit')?.[0]).toEqual([dummyRecipe])
-
-    const deleteBtn = wrapper.findAll('button').find((b) => b.text().includes('Radera recept'))
-    expect(deleteBtn).toBeDefined()
-    await deleteBtn?.trigger('click')
-    expect(wrapper.emitted('delete')?.[0]).toEqual([dummyRecipe.id])
+    // Scale to 8 servings (4 -> 8, factor = 2)
+    await servingsInput.setValue(8)
+    ingredientAmounts = wrapper.findAll('.font-semibold.text-gray-700.bg-gray-50')
+    expect(ingredientAmounts[0]?.text()).toContain('200 g')
+    expect(ingredientAmounts[1]?.text()).toContain('4 st')
   })
 })

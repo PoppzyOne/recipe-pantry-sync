@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import type { Recipe } from '@/types/recipe'
 import { usePantryStore } from '@/stores/pantryStore'
 import { useShoppingListStore } from '@/stores/shoppingListStore'
@@ -19,6 +19,17 @@ const shoppingStore = useShoppingListStore()
 
 const syncMessage = ref<string | null>(null)
 const isAddingToShopping = ref(false)
+
+// Portion scaling
+const targetServings = ref(props.recipe.servings || 1)
+const scalingFactor = computed(() => {
+  if (!props.recipe.servings || props.recipe.servings <= 0) return 1
+  return targetServings.value / props.recipe.servings
+})
+
+watch(() => props.recipe, (newRecipe) => {
+  targetServings.value = newRecipe.servings || 1
+})
 
 function formatLineBreaks(text: string | null | undefined): string {
   if (!text) return ''
@@ -44,6 +55,15 @@ function getCleanStepText(step: string): string {
   return step.replace(/^(\d+[\.\)]|\b(steg|step)\s*\d+[:\.]?|[-*•])\s*/i, '').trim()
 }
 
+// Scaled ingredients
+const scaledIngredients = computed(() => {
+  if (!props.recipe.ingredients) return []
+  return props.recipe.ingredients.map((ing) => ({
+    ...ing,
+    amount: ing.amount ? Math.round(ing.amount * scalingFactor.value * 100) / 100 : null
+  }))
+})
+
 function handleKeydown(e: KeyboardEvent) {
   if (e.key === 'Escape') {
     emit('close')
@@ -61,6 +81,8 @@ onUnmounted(() => {
 async function handleAddMissingToShoppingList() {
   isAddingToShopping.value = true
   try {
+    // Note: This still adds based on the original recipe quantities in the backend/store logic, 
+    // which is correct for "missing ingredients from recipe".
     const addedCount = await shoppingStore.addMissingIngredientsFromRecipe(
       props.recipe.id,
       props.recipe.title
@@ -133,8 +155,14 @@ async function handleAddMissingToShoppingList() {
         <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-gray-50/80 p-3.5 sm:p-4 rounded-xl text-center border border-gray-100">
           <div>
             <div class="text-xs text-gray-500 font-medium">Portioner</div>
-            <div class="text-base font-bold text-gray-900 mt-0.5">
-              {{ recipe.servings ? `${recipe.servings} st` : '-' }}
+            <div class="flex items-center justify-center gap-1 mt-0.5">
+              <input
+                v-model.number="targetServings"
+                type="number"
+                min="1"
+                class="w-12 text-center text-base font-bold text-gray-900 bg-transparent border border-gray-300 rounded-md py-0.5 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+              />
+              <span class="text-xs text-gray-500">st</span>
             </div>
           </div>
           <div>
@@ -187,11 +215,11 @@ async function handleAddMissingToShoppingList() {
 
             <!-- Ingredients list -->
             <div
-              v-if="recipe.ingredients && recipe.ingredients.length > 0"
+              v-if="scaledIngredients && scaledIngredients.length > 0"
               class="divide-y divide-gray-100 border border-gray-200/80 rounded-xl overflow-hidden bg-white shadow-2xs"
             >
               <div
-                v-for="ing in recipe.ingredients"
+                v-for="ing in scaledIngredients"
                 :key="ing.id"
                 class="px-3.5 py-2.5 flex items-center justify-between gap-2.5 text-sm hover:bg-gray-50 transition-colors"
               >
