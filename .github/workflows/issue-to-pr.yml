@@ -34,6 +34,7 @@ jobs:
       ISSUE_NUMBER: ${{ github.event.issue.number || inputs.issue_number }}
       GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
       GEMINI_CLI_TRUST_WORKSPACE: "true"
+      NODE_OPTIONS: "--dns-result-order=ipv4first --no-network-family-autoselection"
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       GITHUB_PERSONAL_ACCESS_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -66,13 +67,8 @@ jobs:
         run: |
           mkdir -p ~/.gemini/config .agent-workspace
           envsubst < .agents/mcp_config.json > ~/.gemini/config/mcp_config.json
-          # In headless CI, only load lightweight remote/API MCP servers (skip local postgres/playwright)
-          python3 -c '
-          import json
-          cfg = json.load(open("/home/runner/.gemini/config/mcp_config.json"))
-          ci_servers = {k: v for k, v in cfg.get("mcpServers", {}).items() if k in ("github", "exa", "context7")}
-          json.dump({"mcpServers": ci_servers}, open("/home/runner/.gemini/settings.json", "w"), indent=2)
-          '
+          # Keep ~/.gemini/settings.json lightweight in headless CI so Gemini CLI uses built-in file/shell tools without MCP stdio overhead
+          echo '{}' > ~/.gemini/settings.json
 
       - name: Select Available Gemini Model for API Key
         id: select_model
