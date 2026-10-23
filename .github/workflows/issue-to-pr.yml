@@ -74,6 +74,25 @@ jobs:
           json.dump({"mcpServers": ci_servers}, open("/home/runner/.gemini/settings.json", "w"), indent=2)
           '
 
+      - name: Select Available Gemini Model for API Key
+        id: select_model
+        run: |
+          MODEL=$(python3 -c '
+          import os, json, urllib.request
+          key = os.environ["GEMINI_API_KEY"]
+          url = f"https://generativelanguage.googleapis.com/v1beta/models?key={key}"
+          try:
+              data = json.loads(urllib.request.urlopen(url, timeout=10).read())
+              names = [m["name"].replace("models/", "") for m in data.get("models", []) if "generateContent" in m.get("supportedGenerationMethods", [])]
+              preferred = ["gemini-3.8-flash", "gemini-3-flash-preview", "gemini-3.0-flash", "gemini-2.5-flash-lite", "gemini-2.0-flash"]
+              chosen = next((p for p in preferred if p in names), next((n for n in names if "flash" in n and "2.5-flash" not in n), "gemini-3.8-flash"))
+              print(chosen)
+          except Exception:
+              print("gemini-3.8-flash")
+          ')
+          echo "Using Gemini model: $MODEL"
+          echo "model=$MODEL" >> "$GITHUB_OUTPUT"
+
       - name: Fetch Issue Details & Existing Issues
         run: |
           gh issue view "$ISSUE_NUMBER" -R "$GITHUB_REPOSITORY" --json number,title,body,labels,comments > .agent-workspace/issue.json
@@ -84,7 +103,7 @@ jobs:
       # =========================================================================
       - name: "1. Triage-agent (Klassificering, dubblettkontroll & validering)"
         run: |
-          gemini --yolo -m gemini-2.5-flash -p "
+          gemini --yolo -m "${{ steps.select_model.outputs.model }}" -p "
           Read AGENTS.md and .agents/agents/triage-agent.md.
           Analyze the target GitHub issue in .agent-workspace/issue.json and compare against .agent-workspace/existing-issues.json.
           Write the JSON result strictly matching the schema to .agent-workspace/triage.json.
@@ -130,7 +149,7 @@ jobs:
       - name: "2. Forsknings-/Lokaliseringsagent (Kartlägg berörda filer via källkod & MCP)"
         if: steps.triage_gate.outputs.actionable == 'true'
         run: |
-          gemini --yolo -m gemini-2.5-flash -p "
+          gemini --yolo -m "${{ steps.select_model.outputs.model }}" -p "
           Read AGENTS.md, .agents/agents/research-agent.md, .agent-workspace/issue.json, and .agent-workspace/triage.json.
           Also consult relevant skills in .agents/skills/ (fullstack-feature, offline-sync-audit).
           Search backend/ and frontend/ to locate all affected files, DTOs, entities, services, resources, Pinia stores, and tests.
@@ -152,7 +171,7 @@ jobs:
           Implement all required changes in backend/ and/or frontend/ strictly following the architecture rules in AGENTS.md and .agents/skills/.
           Write or update JUnit/REST-assured integration tests in backend/src/test/ and Vitest unit tests in frontend/src/__tests__/."
 
-          gemini --yolo -m gemini-2.5-flash -p "$PROMPT" || gemini --yolo -m gemini-2.5-pro -p "$PROMPT"
+          gemini --yolo -m "${{ steps.select_model.outputs.model }}" -p "$PROMPT"
 
       # =========================================================================
       # STAGE 4: Review & Test Agent
@@ -168,7 +187,7 @@ jobs:
           4. Audit git diff against AGENTS.md rules (Java record DTOs, no exposed JPA entities, 1:1 TypeScript parity, English code/comments).
           5. Write the Pull Request description in Swedish to .agent-workspace/pr-body.md including 'Closes #${ISSUE_NUMBER}'."
 
-          gemini --yolo -m gemini-2.5-flash -p "$PROMPT" || gemini --yolo -m gemini-2.5-pro -p "$PROMPT"
+          gemini --yolo -m "${{ steps.select_model.outputs.model }}" -p "$PROMPT"
 
           # Hard verification gate before PR creation: ensure test suites & build are 100% green
           (cd backend && ./mvnw test --batch-mode)
