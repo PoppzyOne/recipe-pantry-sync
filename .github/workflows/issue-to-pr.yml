@@ -67,26 +67,35 @@ jobs:
         run: |
           mkdir -p ~/.gemini/config .agent-workspace
           envsubst < .agents/mcp_config.json > ~/.gemini/config/mcp_config.json
-          # Keep ~/.gemini/settings.json lightweight in headless CI so Gemini CLI uses built-in file/shell tools without MCP stdio overhead
-          echo '{}' > ~/.gemini/settings.json
+          # Disable gitignore filtering in Gemini CLI so it can read/write .agent-workspace/*.json
+          echo '{"fileFiltering":{"respectGitIgnore":false}}' > ~/.gemini/settings.json
 
       - name: Select Available Gemini Model for API Key
         id: select_model
         run: |
           MODEL=$(python3 -c '
-          import os, json, urllib.request
+          import os, json, urllib.request, urllib.error
           key = os.environ["GEMINI_API_KEY"]
           url = f"https://generativelanguage.googleapis.com/v1beta/models?key={key}"
-          try:
-              data = json.loads(urllib.request.urlopen(url, timeout=10).read())
-              names = [m["name"].replace("models/", "") for m in data.get("models", []) if "generateContent" in m.get("supportedGenerationMethods", [])]
-              preferred = ["gemini-3.8-flash", "gemini-3-flash-preview", "gemini-3.0-flash", "gemini-2.5-flash-lite", "gemini-2.0-flash"]
-              chosen = next((p for p in preferred if p in names), next((n for n in names if "flash" in n and "2.5-flash" not in n), "gemini-3.8-flash"))
-              print(chosen)
-          except Exception:
-              print("gemini-3.8-flash")
+          data = json.loads(urllib.request.urlopen(url, timeout=10).read())
+          names = [m["name"].replace("models/", "") for m in data.get("models", []) if "generateContent" in m.get("supportedGenerationMethods", [])]
+          candidates = [c for c in ["gemini-2.5-flash-lite", "gemini-3.1-flash-lite-preview", "gemini-3-flash-preview", "gemini-3.8-flash", "gemini-2.0-flash-lite", "gemini-2.0-flash"] if c in names]
+          for n in names:
+              if "flash" in n and n not in candidates:
+                  candidates.append(n)
+          chosen = candidates[0] if candidates else "gemini-2.5-flash-lite"
+          for m in candidates:
+              test_url = f"https://generativelanguage.googleapis.com/v1beta/models/{m}:generateContent?key={key}"
+              req = urllib.request.Request(test_url, data=b"{\"contents\":[{\"parts\":[{\"text\":\"ok\"}]}]}", headers={"Content-Type": "application/json"})
+              try:
+                  urllib.request.urlopen(req, timeout=10)
+                  chosen = m
+                  break
+              except urllib.error.HTTPError as e:
+                  continue
+          print(chosen)
           ')
-          echo "Using Gemini model: $MODEL"
+          echo "Using Gemini model with active quota: $MODEL"
           echo "model=$MODEL" >> "$GITHUB_OUTPUT"
 
       - name: Fetch Issue Details & Existing Issues
