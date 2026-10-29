@@ -114,7 +114,8 @@ jobs:
         run: |
           gemini --yolo -m "${{ steps.select_model.outputs.model }}" -p "
           Read AGENTS.md and .agents/agents/triage-agent.md.
-          Analyze the target GitHub issue in .agent-workspace/issue.json and compare against .agent-workspace/existing-issues.json.
+          The ONLY target issue to classify and name a branch slug for is issue #${ISSUE_NUMBER} located in .agent-workspace/issue.json.
+          Do NOT use titles from .agent-workspace/existing-issues.json for the slug; existing-issues.json is only for checking duplicates.
           Write the JSON result strictly matching the schema to .agent-workspace/triage.json.
           Do not modify any source code files.
           "

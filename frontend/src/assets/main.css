@@ -1,1 +1,111 @@
 @import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* Global dark mode surface & typography mappings for consistent theming across all views and modals */
+html.dark {
+  color-scheme: dark;
+}
+
+html.dark .bg-white {
+  background-color: var(--color-gray-800);
+}
+
+html.dark .bg-gray-50,
+html.dark .bg-gray-50\/50,
+html.dark .bg-gray-50\/60,
+html.dark .bg-gray-50\/80 {
+  background-color: var(--color-gray-900);
+}
+
+html.dark .bg-gray-100 {
+  background-color: var(--color-gray-700);
+}
+
+html.dark .hover\:bg-gray-50:hover,
+html.dark .hover\:bg-gray-100:hover {
+  background-color: var(--color-gray-700);
+}
+
+html.dark .hover\:bg-gray-200:hover {
+  background-color: var(--color-gray-600);
+}
+
+html.dark .text-gray-900,
+html.dark .text-gray-800 {
+  color: var(--color-gray-100);
+}
+
+html.dark .text-gray-700,
+html.dark .text-gray-600 {
+  color: var(--color-gray-300);
+}
+
+html.dark .text-gray-500 {
+  color: var(--color-gray-400);
+}
+
+html.dark .border-gray-100,
+html.dark .border-gray-200,
+html.dark .border-gray-300,
+html.dark .divide-gray-100 > :not(:last-child),
+html.dark .divide-gray-200 > :not(:last-child) {
+  border-color: var(--color-gray-700);
+}
+
+html.dark input:not([type="checkbox"]):not([type="radio"]),
+html.dark select,
+html.dark textarea {
+  background-color: var(--color-gray-900);
+  color: var(--color-gray-100);
+  border-color: var(--color-gray-700);
+}
+
+html.dark input::placeholder,
+html.dark textarea::placeholder {
+  color: var(--color-gray-500);
+}
+
+html.dark .bg-emerald-50,
+html.dark .bg-emerald-50\/50,
+html.dark .bg-emerald-50\/60 {
+  background-color: color-mix(in srgb, var(--color-emerald-950) 75%, transparent);
+}
+
+html.dark .text-emerald-900,
+html.dark .text-emerald-800,
+html.dark .text-emerald-700 {
+  color: var(--color-emerald-300);
+}
+
+html.dark .border-emerald-100,
+html.dark .border-emerald-200 {
+  border-color: var(--color-emerald-800);
+}
+
+html.dark .bg-amber-50 {
+  background-color: color-mix(in srgb, var(--color-amber-950) 75%, transparent);
+}
+
+html.dark .text-amber-900,
+html.dark .text-amber-800,
+html.dark .text-amber-700 {
+  color: var(--color-amber-300);
+}
+
+html.dark .border-amber-200 {
+  border-color: var(--color-amber-800);
+}
+
+html.dark .bg-red-50 {
+  background-color: color-mix(in srgb, var(--color-red-950) 75%, transparent);
+}
+
+html.dark .text-red-800,
+html.dark .text-red-700 {
+  color: var(--color-red-300);
+}
+
+html.dark .border-red-200 {
+  border-color: var(--color-red-800);
+}
