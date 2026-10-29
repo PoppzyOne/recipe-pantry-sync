@@ -9,6 +9,7 @@ import CreateRecipeModal from '@/components/CreateRecipeModal.vue'
 import EditRecipeModal from '@/components/EditRecipeModal.vue'
 import RecipeDetailsModal from '@/components/RecipeDetailsModal.vue'
 import ImportRecipeModal from '@/components/recipe/ImportRecipeModal.vue'
+import ThemeToggle from '@/components/ThemeToggle.vue'
 
 const recipeStore = useRecipeStore()
 const pantryStore = usePantryStore()
@@ -99,51 +100,51 @@ provide('recipeActions', {
 </script>
 
 <template>
-  <div class="min-h-screen bg-gray-50 text-gray-900 flex flex-col font-sans">
+  <div class="min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 flex flex-col font-sans">
     <!-- Navigation header -->
-    <header class="bg-white border-b border-gray-200 sticky top-0 z-30 shadow-2xs">
+    <header class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-30 shadow-2xs">
       <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
         <div class="flex items-center gap-3">
           <div class="w-9 h-9 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-bold text-lg shadow-xs">
             🍳
           </div>
           <div>
-            <h1 class="text-lg font-bold text-gray-900 leading-tight">Skafferiet</h1>
-            <p class="text-xs text-gray-500 hidden sm:block">Recept, skafferi och inköpslista</p>
+            <h1 class="text-lg font-bold text-gray-900 dark:text-white leading-tight">Skafferiet</h1>
+            <p class="text-xs text-gray-500 dark:text-gray-400 hidden sm:block">Recept, skafferi och inköpslista</p>
           </div>
         </div>
 
         <!-- Tab navigation -->
-        <nav class="hidden sm:flex items-center gap-1 bg-gray-100 p-1 rounded-xl text-xs font-semibold">
+        <nav class="hidden sm:flex items-center gap-1 bg-gray-100 dark:bg-gray-700 p-1 rounded-xl text-xs font-semibold">
           <RouterLink
             to="/recipes"
             class="px-3.5 py-1.5 rounded-lg transition-colors cursor-pointer flex items-center gap-1.5"
-            active-class="bg-white shadow-2xs text-gray-900"
-            inactive-class="text-gray-600 hover:text-gray-900"
+            active-class="bg-white dark:bg-gray-800 shadow-2xs text-gray-900 dark:text-white"
+            inactive-class="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
           >
             <span>🍳</span> Recept
           </RouterLink>
           <RouterLink
             to="/planner"
             class="px-3.5 py-1.5 rounded-lg transition-colors cursor-pointer flex items-center gap-1.5"
-            active-class="bg-white shadow-2xs text-gray-900"
-            inactive-class="text-gray-600 hover:text-gray-900"
+            active-class="bg-white dark:bg-gray-800 shadow-2xs text-gray-900 dark:text-white"
+            inactive-class="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
           >
             <span>📅</span> Veckoplan
           </RouterLink>
           <RouterLink
             to="/pantry"
             class="px-3.5 py-1.5 rounded-lg transition-colors cursor-pointer flex items-center gap-1.5"
-            active-class="bg-white shadow-2xs text-gray-900"
-            inactive-class="text-gray-600 hover:text-gray-900"
+            active-class="bg-white dark:bg-gray-800 shadow-2xs text-gray-900 dark:text-white"
+            inactive-class="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
           >
             <span>🥫</span> Skafferi
           </RouterLink>
           <RouterLink
             to="/shopping"
             class="px-3.5 py-1.5 rounded-lg transition-colors cursor-pointer flex items-center gap-1.5 relative"
-            active-class="bg-white shadow-2xs text-gray-900"
-            inactive-class="text-gray-600 hover:text-gray-900"
+            active-class="bg-white dark:bg-gray-800 shadow-2xs text-gray-900 dark:text-white"
+            inactive-class="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
           >
             <span>🛒</span> Inköpslista
             <span
@@ -156,10 +157,11 @@ provide('recipeActions', {
         </nav>
 
         <div class="flex items-center gap-2">
+          <ThemeToggle />
           <button
             v-if="$route.name === 'recipes'"
             type="button"
-            class="inline-flex items-center gap-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs sm:text-sm font-semibold px-2.5 sm:px-3 py-2 rounded-xl transition-colors cursor-pointer shrink-0"
+            class="inline-flex items-center gap-1.5 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 text-xs sm:text-sm font-semibold px-2.5 sm:px-3 py-2 rounded-xl transition-colors cursor-pointer shrink-0"
             title="Importera recept"
             @click="handleOpenImportModal"
           >

@@ -1,1 +1,242 @@
 @import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* Global dark mode surface & typography mappings for consistent theming across all views and modals */
+html.dark {
+  color-scheme: dark;
+}
+
+html.dark .bg-white {
+  background-color: var(--color-gray-800);
+}
+
+html.dark .bg-gray-50,
+html.dark .bg-gray-50\/50,
+html.dark .bg-gray-50\/60,
+html.dark .bg-gray-50\/70,
+html.dark .bg-gray-50\/80 {
+  background-color: var(--color-gray-900);
+}
+
+html.dark .bg-gray-100 {
+  background-color: var(--color-gray-700);
+}
+
+html.dark .hover\:bg-gray-50:hover,
+html.dark .hover\:bg-gray-100:hover {
+  background-color: var(--color-gray-700);
+}
+
+html.dark .hover\:bg-gray-200:hover {
+  background-color: var(--color-gray-600);
+}
+
+html.dark .text-gray-900,
+html.dark .text-gray-800 {
+  color: var(--color-gray-100);
+}
+
+html.dark .text-gray-700,
+html.dark .text-gray-600 {
+  color: var(--color-gray-300);
+}
+
+html.dark .text-gray-500 {
+  color: var(--color-gray-400);
+}
+
+html.dark .border-gray-100,
+html.dark .border-gray-200,
+html.dark .border-gray-200\/80,
+html.dark .border-gray-300,
+html.dark .divide-gray-100 > :not(:last-child),
+html.dark .divide-gray-200 > :not(:last-child) {
+  border-color: var(--color-gray-700);
+}
+
+html.dark input:not([type="checkbox"]):not([type="radio"]),
+html.dark select,
+html.dark textarea {
+  background-color: var(--color-gray-900);
+  color: var(--color-gray-100);
+  border-color: var(--color-gray-700);
+}
+
+html.dark input::placeholder,
+html.dark textarea::placeholder {
+  color: var(--color-gray-500);
+}
+
+/* Emerald badges, status pills ("Finns hemma", "Hemma", "Fullt") & surfaces */
+html.dark .bg-emerald-50,
+html.dark .bg-emerald-50\/50,
+html.dark .bg-emerald-50\/60,
+html.dark .bg-emerald-50\/70 {
+  background-color: color-mix(in srgb, var(--color-emerald-900) 40%, var(--color-gray-800));
+}
+
+html.dark .bg-emerald-100,
+html.dark .hover\:bg-emerald-50:hover,
+html.dark .hover\:bg-emerald-100:hover {
+  background-color: color-mix(in srgb, var(--color-emerald-900) 65%, var(--color-gray-800));
+}
+
+html.dark .hover\:bg-emerald-200:hover {
+  background-color: color-mix(in srgb, var(--color-emerald-800) 75%, var(--color-gray-800));
+}
+
+html.dark .text-emerald-900,
+html.dark .text-emerald-800,
+html.dark .text-emerald-700,
+html.dark .hover\:text-emerald-700:hover,
+html.dark .hover\:text-emerald-800:hover {
+  color: var(--color-emerald-300);
+}
+
+html.dark .border-emerald-100,
+html.dark .border-emerald-100\/80,
+html.dark .border-emerald-200,
+html.dark .border-emerald-200\/60 {
+  border-color: var(--color-emerald-700);
+}
+
+/* Amber badges, status pills ("Saknas", "Slut", "Lite kvar", "Skafferi & Torrvaror") & surfaces */
+html.dark .bg-amber-50 {
+  background-color: color-mix(in srgb, var(--color-amber-900) 40%, var(--color-gray-800));
+}
+
+html.dark .bg-amber-50\/20 {
+  background-color: color-mix(in srgb, var(--color-amber-950) 45%, var(--color-gray-800));
+}
+
+html.dark .bg-amber-100 {
+  background-color: color-mix(in srgb, var(--color-amber-900) 65%, var(--color-gray-800));
+}
+
+html.dark .hover\:bg-amber-200:hover {
+  background-color: color-mix(in srgb, var(--color-amber-800) 75%, var(--color-gray-800));
+}
+
+html.dark .text-amber-900,
+html.dark .text-amber-800,
+html.dark .text-amber-700 {
+  color: var(--color-amber-300);
+}
+
+html.dark .border-amber-200 {
+  border-color: var(--color-amber-700);
+}
+
+/* Red badges ("Kött, Fisk & Fågel", alerts & delete states) */
+html.dark .bg-red-50,
+html.dark .hover\:bg-red-50:hover {
+  background-color: color-mix(in srgb, var(--color-red-900) 40%, var(--color-gray-800));
+}
+
+html.dark .bg-red-100,
+html.dark .hover\:bg-red-100:hover {
+  background-color: color-mix(in srgb, var(--color-red-900) 65%, var(--color-gray-800));
+}
+
+html.dark .text-red-800,
+html.dark .text-red-700,
+html.dark .hover\:text-red-600:hover,
+html.dark .hover\:text-red-700:hover {
+  color: var(--color-red-300);
+}
+
+html.dark .border-red-100,
+html.dark .border-red-200 {
+  border-color: var(--color-red-700);
+}
+
+/* Green badges ("Frukt & Grönt") */
+html.dark .bg-green-50 {
+  background-color: color-mix(in srgb, var(--color-green-900) 40%, var(--color-gray-800));
+}
+
+html.dark .bg-green-100 {
+  background-color: color-mix(in srgb, var(--color-green-900) 65%, var(--color-gray-800));
+}
+
+html.dark .text-green-800,
+html.dark .text-green-700 {
+  color: var(--color-green-300);
+}
+
+html.dark .border-green-200 {
+  border-color: var(--color-green-700);
+}
+
+/* Blue badges ("Mejeri & Ost", "Halvt", "Synkar...") */
+html.dark .bg-blue-50 {
+  background-color: color-mix(in srgb, var(--color-blue-900) 40%, var(--color-gray-800));
+}
+
+html.dark .bg-blue-100 {
+  background-color: color-mix(in srgb, var(--color-blue-900) 65%, var(--color-gray-800));
+}
+
+html.dark .text-blue-800,
+html.dark .text-blue-700 {
+  color: var(--color-blue-300);
+}
+
+html.dark .border-blue-200 {
+  border-color: var(--color-blue-700);
+}
+
+/* Orange badges ("Kryddor & Smaksättare") */
+html.dark .bg-orange-50 {
+  background-color: color-mix(in srgb, var(--color-orange-900) 40%, var(--color-gray-800));
+}
+
+html.dark .bg-orange-100 {
+  background-color: color-mix(in srgb, var(--color-orange-900) 65%, var(--color-gray-800));
+}
+
+html.dark .text-orange-800,
+html.dark .text-orange-700 {
+  color: var(--color-orange-300);
+}
+
+html.dark .border-orange-200 {
+  border-color: var(--color-orange-700);
+}
+
+/* Yellow badges ("Bröd & Bakning") */
+html.dark .bg-yellow-50 {
+  background-color: color-mix(in srgb, var(--color-yellow-900) 40%, var(--color-gray-800));
+}
+
+html.dark .bg-yellow-100 {
+  background-color: color-mix(in srgb, var(--color-yellow-900) 65%, var(--color-gray-800));
+}
+
+html.dark .text-yellow-800,
+html.dark .text-yellow-700 {
+  color: var(--color-yellow-300);
+}
+
+html.dark .border-yellow-200 {
+  border-color: var(--color-yellow-700);
+}
+
+/* Cyan badges ("Frysvaror") */
+html.dark .bg-cyan-50 {
+  background-color: color-mix(in srgb, var(--color-cyan-900) 40%, var(--color-gray-800));
+}
+
+html.dark .bg-cyan-100 {
+  background-color: color-mix(in srgb, var(--color-cyan-900) 65%, var(--color-gray-800));
+}
+
+html.dark .text-cyan-800,
+html.dark .text-cyan-700 {
+  color: var(--color-cyan-300);
+}
+
+html.dark .border-cyan-200 {
+  border-color: var(--color-cyan-700);
+}
